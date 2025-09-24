@@ -1,5 +1,61 @@
+<!DOCTYPE html>
+
 <html>
 
-<body>Hello World</body>
+<head>
+    <title>Login Page</title>
+    <style>
+        .my-button {
+            background-color: orangered;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            position: absolute;
+            top: 500px;
+            left: 750px;
+        }
+    </style>
+</head>
+
+
+<body>
+    <button class="my-button" id="loginButton">Login</button>
+    <img src="thumbnail_IMG_2719.png" alt="My Image"
+        style="position: absolute; top: 75px; left: 700px; width: 200px; height: auto;">
+    <a href="createUser.html" style="position: absolute; top: 600px; left: 735px; color: orangered;">Create User
+        Page</a>
+    <label for="usernameInput" style="position: absolute; top: 300px; left: 680px;">Username:</label>
+    <input type="text" id="usernameInput" name="username" style="position: absolute; top: 300px; left: 780px;">
+
+    <label for="passwordInput" style="position: absolute; top: 350px; left: 680px;">Password:</label>
+    <input type="password" id="passwordInput" name="password" style="position: absolute; top: 350px; left: 780px;">
+    <script>
+        let loginButton = document.getElementById("loginButton");
+        loginButton.addEventListener("click", function () {
+            let username = document.getElementById("usernameInput").value;
+            let password = document.getElementById("passwordInput").value;
+            fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username: username, password: password })
+            }).then(function (response) {
+                if (response.ok) {
+                    alert('Login successful!');
+                } else {
+                    throw new Error(`Login failed: ${response.status}`);
+                }
+            }).catch(function (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again later.');
+            });
+        });
+
+    </script>
+</body>
+
 
 </html>
