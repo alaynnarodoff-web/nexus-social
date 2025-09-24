@@ -1,0 +1,25 @@
+GET http://localhost:8080/hello/alaynna
+
+###
+
+POST http://localhost:8080/login
+content-type: application/json
+
+{"username":"alaynna2",
+"password":"boo"}
+
+###
+
+GET http://localhost:8080/getLoginUser
+
+###
+
+POST http://localhost:8080/user
+content-type: application/json
+
+{"username":"alaynna2",
+"password":"boo"}
+
+###
+
+DELETE http://localhost:8080/logout
