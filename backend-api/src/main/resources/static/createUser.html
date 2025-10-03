@@ -1,10 +1,26 @@
 <!DOCTYPE html>
-
 <html>
 
 <head>
-    <title>Create Account Page</title>
+    <title>Create User Page</title>
     <style>
+        .center-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .createUserForm {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin: 10px 0;
+            font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+            font-size: 14px;
+        }
+
         .my-button {
             background-color: orangered;
             color: white;
@@ -12,57 +28,82 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            position: absolute;
-            top: 500px;
-            left: 750px;
+            margin: 20px 0 0 0;
+        }
+
+        .center-container img {
+            width: 120px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+
+        .center-container a {
+            color: orangered;
+            margin-top: 20px;
+            text-decoration: none;
+            font-size: 16px;
         }
     </style>
 </head>
 
-
 <body>
-    <button class="my-button" id="createUserButton">Submit!</button>
-    <img src="thumbnail_IMG_2719.png" alt="My Image"
-        style="position: absolute; top: 750px; left: 700px; width: 200px; height: auto;">
-
-    <label for="usernameInput" style="position: absolute; top: 300px; left: 650px;">Create Username:</label>
-    <input type="text" id="usernameInput" name="username" style="position: absolute; top: 300px; left: 800px;">
-
-    <label for="passwordInput" style="position: absolute; top: 350px; left: 650px;">Create Password:</label>
-    <input type="password" id="passwordInput" name="password" style="position: absolute; top: 350px; left: 800px;">
-
-    <label for="emailInput" style="position: absolute; top: 400px; left: 650px;">Email:</label>
-    <input type="text" id="emailInput" name="email" style="position: absolute; top: 400px; left: 800px;">
-
-    <label for="firstNameInput" style="position: absolute; top: 450px; left: 650px;">First Name:</label>
-    <input type="text" id="firstNameInput" name="firstName" style="position: absolute; top: 450px; left: 800px;">
-
-    <label for="lastNameInput" style="position: absolute; top: 500px; left: 650px;">Last Name:</label>
-    <input type="text" id="lastNameInput" name="lastName" style="position: absolute; top: 500px; left: 800px;">
-
-    <label for="phoneInput" style="position: absolute; top: 550px; left: 650px;">Phone Number:</label>
-    <input type="text" id="phoneInput" name="phone" style="position: absolute; top: 550px; left: 800px;">
-
-    <img src="" alt="avatar" id="avatarImage"
-        style="position: absolute; top: 600px; left: 700px; width: 200px; height: auto;">
-    <input type="file" id="avatarInput" name="avatar" accept="image/*"
-        style="position: absolute; top: 700px; left: 700px;">
+    <div class="center-container">
+        <img src="thumbnail_IMG_2719.png" alt="My Image">
+        <div class="createUserForm">
+            <label for="usernameInput">Username:</label>
+            <input type="text" id="usernameInput" name="username">
+        </div>
+        <div class="createUserForm">
+            <label for="passwordInput">Password:</label>
+            <input type="password" id="passwordInput" name="password">
+        </div>
+        <div class="createUserForm">
+            <label for="emailInput">Email:</label>
+            <input type="email" id="emailInput" name="email">
+        </div>
+        <div class="createUserForm">
+            <label for="firstNameInput">First Name:</label>
+            <input type="text" id="firstNameInput" name="firstName">
+        </div>
+        <div class="createUserForm">
+            <label for="lastNameInput">Last Name:</label>
+            <input type="text" id="lastNameInput" name="lastName">
+        </div>
+        <div class="createUserForm">
+            <img src="" alt="avatar" id="avatarImage" style="">
+            <input type="file" id="avatarInput" name="avatar" accept="image/*">
+        </div>
+        <button class="my-button" id="createUserButton">Create Account</button>
+        <a href="index.html">Back to Login</a>
+    </div>
     <script>
         let createUserButton = document.getElementById("createUserButton");
         createUserButton.addEventListener("click", function () {
             let username = document.getElementById("usernameInput").value;
             let password = document.getElementById("passwordInput").value;
+            let email = document.getElementById("emailInput").value;
+            let firstName = document.getElementById("firstNameInput").value;
+            let lastName = document.getElementById("lastNameInput").value;
+            let authorAvatar = document.getElementById("avatarImage").src;
             fetch('/user', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ username: username, password: password })
+                body: JSON.stringify({
+                    username: username,
+                    password: password,
+                    email: email,
+                    firstName: firstName,
+                    lastName: lastName,
+                    avatar: authorAvatar
+                })
             }).then(function (response) {
                 if (response.ok) {
-                    alert('Successfully created user!');
+                    alert('Account created successfully!');
+                    window.location.href = "index.html";
                 } else {
-                    throw new Error(`User creation failed: ${response.status}`);
+                    response.text().then(text => alert(text));
                 }
             }).catch(function (error) {
                 console.error('Error:', error);
@@ -76,12 +117,10 @@
             reader.onload = function (e) {
                 const avatarBase64 = e.target.result;
                 document.getElementById('avatarImage').src = avatarBase64;
-            };
+            }
             reader.readAsDataURL(file);
         });
-
     </script>
 </body>
-
 
 </html>
