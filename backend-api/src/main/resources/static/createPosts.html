@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Create Posts Page</title>
+    <style>
+        .center-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .createPostForm {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin: 10px 0;
+            font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+            font-size: 14px;
+        }
+
+        .my-button {
+            background-color: orangered;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .center-container img {
+            width: 120px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+
+        .center-container a {
+            color: orangered;
+            margin-top: 20px;
+            text-decoration: none;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="center-container">
+        <img src="thumbnail_IMG_2719.png" alt="My Image">
+
+        <div class="createPostForm">
+            <label for="postContentInput">Post Content:</label>
+            <textarea id="postContentInput" name="content" rows="4" cols="50"></textarea>
+        </div>
+        <div class="createPostForm">
+            <label for="imageFileInput">Image File:</label>
+            <input type="file" id="imageFileInput" name="imageFile">
+        </div>
+        <button class="my-button" id="createPostButton">Create Post</button>
+        <a href="index.html">Back to Login</a>
+    </div>
+
+    <script>
+        let createPostButton = document.getElementById("createPostButton");
+        createPostButton.addEventListener("click", function () {
+            let postContent = document.getElementById("postContentInput").value;
+            let imageFile = document.getElementById("imageFileInput").files[0];
+            let authorId = sessionStorage.getItem("loggedInUser");
+
+            let formData = new FormData();
+            formData.append("authorId", authorId);
+            formData.append("content", postContent);
+            if (imageFile) {
+                formData.append("imageFile", imageFile);
+            }
+
+            fetch('/posts', {
+                method: 'POST',
+                body: formData
+            }).then(function (response) {
+                if (response.ok) {
+                    alert('Post created successfully!');
+                    window.location.href = "viewPosts.html";
+                } else {
+                    response.json().then(data => {
+                        alert('Error creating post: ' + data.message);
+                    });
+                }
+            }).catch(function (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again later.');
+            });
+        });
+        const postInput = document.getElementById('postInput');
+        postInput.addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const postBase64 = e.target.result;
+                document.getElementById('postImage').src = postBase64;
+            }
+            reader.readAsDataURL(file);
+        });
+    </script>
+</body>
+
+</html>

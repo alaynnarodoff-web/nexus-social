@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -58,13 +59,38 @@ public class AuthenticationController {
         }
     }
 
-    @GetMapping("/getLoginUser")
-    public String getLoginUser() {
+    @GetMapping("/getUser")
+    public User getUser() {
         Object loggedIn = session.getAttribute("loggedInUser");
-        if (loggedIn == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No user is logged in.");
+        String user = loggedIn.toString();
+        User existingUser = userRepository.findOneByUsername(user);
+        if (existingUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No User is currently logged in");
         }
-        return "Currently logged in user: " + loggedIn.toString();
+        return existingUser;
+    }
+
+    @PutMapping("/updateUser")
+    public String updateUser(@RequestBody User user) {
+
+        Object loggedIn = session.getAttribute("loggedInUser");
+        User currentUser = (User) loggedIn;
+        if (!currentUser.getUsername().equals(user.getUsername())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You can only update your own account");
+        }
+        if (userRepository.findOneByUsername(user.getUsername()) != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
+        } else {
+            User existingUser = userRepository.findOneByUsername(user.getUsername());
+            existingUser.setUsername(user.getUsername());
+            existingUser.setEmail(user.getEmail());
+            existingUser.setFirstName(user.getFirstName());
+            existingUser.setLastName(user.getLastName());
+            existingUser.setPhone(user.getPhone());
+            existingUser.setAvatar(user.getAvatar());
+            userRepository.save(existingUser);
+            return "Congratulations, you have created an account with the username " + user.getUsername();
+        }
     }
 
     @DeleteMapping("/logout")

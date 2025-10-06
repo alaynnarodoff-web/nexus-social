@@ -7,4 +7,6 @@ import clarity.internship.backend_api.models.User;
 public interface UserRepository extends MongoRepository<User, String> {
     public User findOneByUsername(String username);
 
+    User findByUsername(String username);
+
 }

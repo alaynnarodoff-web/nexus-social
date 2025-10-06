@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>View Posts</title>
+    <style>
+        .center-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 0;
+            font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+        }
+
+        .post-card {
+            background: #fff3e6;
+            border: 1px solid #ffd6b3;
+            border-radius: 8px;
+            margin: 15px 0;
+            padding: 20px;
+            width: 350px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .post-author {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .post-author img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 1px solid orangered;
+        }
+
+        .post-content {
+            margin-bottom: 10px;
+        }
+
+        .post-image {
+            max-width: 100%;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .post-timestamp {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .back-link {
+            margin-top: 30px;
+            color: orangered;
+            text-decoration: none;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="center-container">
+        <h2>All Posts</h2>
+        <div id="postsContainer"></div>
+        <a class="back-link" href="viewAccount.html">Back to Account</a>
+    </div>
+
+    <script>
+        fetch('/posts')
+            .then(response => response.json())
+            .then(posts => {
+                const container = document.getElementById('postsContainer');
+
+                if (posts.length === 0) {
+                    container.innerHTML = "<p>No posts found.</p>";
+                } else {
+                    posts.forEach(post => {
+                        const card = document.createElement('div');
+                        card.className = 'post-card';
+
+                        // Avatar and author section
+                        const authorContainer = document.createElement('div');
+                        authorContainer.className = 'post-author';
+
+                        const avatarImg = document.createElement('img');
+                        avatarImg.src = post.authorAvatar && post.authorAvatar.trim() !== "" ? post.authorAvatar : "defaultAvatar.jpg";
+                        avatarImg.alt = "Avatar";
+
+                        const authorName = document.createElement('span');
+                        authorName.textContent = post.authorId;
+
+                        authorContainer.appendChild(avatarImg);
+                        authorContainer.appendChild(authorName);
+                        card.appendChild(authorContainer);
+
+                        // Post content
+                        const content = document.createElement('div');
+                        content.className = 'post-content';
+                        content.textContent = post.content;
+                        card.appendChild(content);
+
+                        // Post image (optional)
+                        if (post.imageBase64 && post.imageBase64.trim() !== "") {
+                            const img = document.createElement('img');
+                            img.className = 'post-image';
+                            img.src = "data:image/jpeg;base64," + post.imageBase64;
+                            img.alt = "Post image";
+                            card.appendChild(img);
+                        }
+
+
+                        // Timestamp
+                        const timestamp = document.createElement('div');
+                        timestamp.className = 'post-timestamp';
+                        timestamp.textContent = "Posted: " + (post.timestamp ? new Date(post.timestamp).toLocaleString() : "");
+                        card.appendChild(timestamp);
+
+                        container.appendChild(card);
+                    });
+                }
+            })
+            .catch(error => {
+                document.getElementById('postsContainer').innerHTML = "<p>Error loading posts.</p>";
+                console.error(error);
+            });
+    </script>
+</body>
+
+</html>
