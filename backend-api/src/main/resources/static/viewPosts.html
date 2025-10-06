@@ -60,12 +60,76 @@
             text-decoration: none;
             font-size: 16px;
         }
+
+        /* Updated: Center and style search container */
+        .search-container {
+            margin-bottom: 30px;
+            position: relative;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Make label appear above input, centered */
+        .search-container label {
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* Input full width inside container */
+        #userSearch {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        #suggestionsList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            border: 1px solid #ccc;
+            max-height: 150px;
+            overflow-y: auto;
+            background: white;
+            position: absolute;
+            width: 300px;
+            /* Same as input width */
+            z-index: 1000;
+            top: 70px;
+            /* Position below input */
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            border-radius: 4px;
+        }
+
+        #suggestionsList li {
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        #suggestionsList li:hover {
+            background-color: #f0f0f0;
+        }
     </style>
 </head>
 
 <body>
     <div class="center-container">
         <h2>All Posts</h2>
+
+        <!-- Moved search container inside center-container and above posts -->
+        <div class="search-container">
+            <label for="userSearch">Search Users:</label>
+            <input type="text" id="userSearch" placeholder="Type a name..." autocomplete="off">
+            <ul id="suggestionsList" class="suggestions"></ul>
+        </div>
+
         <div id="postsContainer"></div>
         <a class="back-link" href="viewAccount.html">Back to Account</a>
     </div>
@@ -113,7 +177,6 @@
                             card.appendChild(img);
                         }
 
-
                         // Timestamp
                         const timestamp = document.createElement('div');
                         timestamp.className = 'post-timestamp';
@@ -128,6 +191,34 @@
                 document.getElementById('postsContainer').innerHTML = "<p>Error loading posts.</p>";
                 console.error(error);
             });
+
+        document.getElementById("userSearch").addEventListener("input", function () {
+            const query = this.value;
+            const suggestionsList = document.getElementById("suggestionsList");
+
+            if (query.length < 2) {
+                suggestionsList.innerHTML = ""; // Clear if too short
+                return;
+            }
+
+            fetch(`/users/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(users => {
+                    suggestionsList.innerHTML = "";
+
+                    users.forEach(user => {
+                        const li = document.createElement("li");
+                        li.textContent = user.displayName || user.username;
+                        li.addEventListener("click", () => {
+                            window.location.href = `profile.html?username=${user.username}`;
+                        });
+                        suggestionsList.appendChild(li);
+                    });
+                })
+                .catch(err => {
+                    console.error("Search error:", err);
+                });
+        });
     </script>
 </body>
 
