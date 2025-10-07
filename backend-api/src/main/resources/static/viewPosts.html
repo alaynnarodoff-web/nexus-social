@@ -61,7 +61,6 @@
             font-size: 16px;
         }
 
-        /* Updated: Center and style search container */
         .search-container {
             margin-bottom: 30px;
             position: relative;
@@ -71,14 +70,56 @@
             align-items: center;
         }
 
-        /* Make label appear above input, centered */
         .search-container label {
             margin-bottom: 8px;
             font-weight: bold;
             font-size: 16px;
         }
 
-        /* Input full width inside container */
+        .heart {
+            position: relative;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            transform: rotate(-45deg);
+            background-color: orange;
+            display: inline-block;
+            box-sizing: border-box;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .heart::before,
+        .heart::after {
+            content: "";
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: orange;
+            box-sizing: border-box;
+        }
+
+        .heart::before {
+            top: -12px;
+            left: 0;
+        }
+
+        .heart::after {
+            left: 12px;
+            top: 0;
+        }
+
+        .heart.liked {
+            background-color: orangered;
+        }
+
+        .heart.liked::before,
+        .heart.liked::after {
+            background-color: orangered;
+        }
+
+
+
         #userSearch {
             width: 100%;
             padding: 8px 10px;
@@ -98,10 +139,9 @@
             background: white;
             position: absolute;
             width: 300px;
-            /* Same as input width */
             z-index: 1000;
             top: 70px;
-            /* Position below input */
+
             left: 50%;
             transform: translateX(-50%);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -123,7 +163,6 @@
     <div class="center-container">
         <h2>All Posts</h2>
 
-        <!-- Moved search container inside center-container and above posts -->
         <div class="search-container">
             <label for="userSearch">Search Users:</label>
             <input type="text" id="userSearch" placeholder="Type a name..." autocomplete="off">
@@ -147,7 +186,7 @@
                         const card = document.createElement('div');
                         card.className = 'post-card';
 
-                        // Avatar and author section
+
                         const authorContainer = document.createElement('div');
                         authorContainer.className = 'post-author';
 
@@ -162,13 +201,13 @@
                         authorContainer.appendChild(authorName);
                         card.appendChild(authorContainer);
 
-                        // Post content
+
                         const content = document.createElement('div');
                         content.className = 'post-content';
                         content.textContent = post.content;
                         card.appendChild(content);
 
-                        // Post image (optional)
+
                         if (post.imageBase64 && post.imageBase64.trim() !== "") {
                             const img = document.createElement('img');
                             img.className = 'post-image';
@@ -177,11 +216,27 @@
                             card.appendChild(img);
                         }
 
-                        // Timestamp
+
+                        const footerRow = document.createElement('div');
+                        footerRow.style.display = 'flex';
+                        footerRow.style.justifyContent = 'space-between';
+                        footerRow.style.alignItems = 'center';
+                        footerRow.style.width = '100%';
+
                         const timestamp = document.createElement('div');
                         timestamp.className = 'post-timestamp';
                         timestamp.textContent = "Posted: " + (post.timestamp ? new Date(post.timestamp).toLocaleString() : "");
-                        card.appendChild(timestamp);
+
+                        const heart = document.createElement('span');
+                        heart.className = 'heart';
+                        heart.addEventListener('click', () => {
+                            heart.classList.toggle('liked');
+                        });
+
+                        footerRow.appendChild(timestamp);
+                        footerRow.appendChild(heart);
+                        card.appendChild(footerRow);
+
 
                         container.appendChild(card);
                     });
@@ -197,7 +252,7 @@
             const suggestionsList = document.getElementById("suggestionsList");
 
             if (query.length < 2) {
-                suggestionsList.innerHTML = ""; // Clear if too short
+                suggestionsList.innerHTML = "";
                 return;
             }
 
