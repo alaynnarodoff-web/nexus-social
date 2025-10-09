@@ -16,6 +16,8 @@ public class Post {
     private String imageUrl;
     private String authorAvatar;
     private Instant timestamp;
+    private String imageBase64;
+    private List<String> likedBy = new ArrayList<>();
 
     public Post() {
         this.timestamp = Instant.now();
@@ -69,8 +71,6 @@ public class Post {
         this.timestamp = timestamp;
     }
 
-    private String imageBase64;
-
     public String getImageBase64() {
         return imageBase64;
     }
@@ -78,8 +78,6 @@ public class Post {
     public void setImageBase64(String imageBase64) {
         this.imageBase64 = imageBase64;
     }
-
-    private List<String> likedBy = new ArrayList<>();
 
     public List<String> getLikedBy() {
         return likedBy;
