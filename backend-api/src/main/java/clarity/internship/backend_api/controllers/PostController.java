@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
 import java.util.Base64;
@@ -32,13 +35,11 @@ public class PostController {
         post.setAuthorId(authorId);
         post.setContent(content);
 
-        // ✅ Set avatar from user account (already base64-encoded)
         User user = userRepository.findByUsername(authorId);
         if (user != null && user.getAvatar() != null && !user.getAvatar().isEmpty()) {
             post.setAuthorAvatar(user.getAvatar());
         }
 
-        // ✅ Encode image file to base64 string
         if (imageFile != null && !imageFile.isEmpty()) {
             String base64Image = Base64.getEncoder().encodeToString(imageFile.getBytes());
             post.setImageBase64(base64Image);
@@ -56,4 +57,24 @@ public class PostController {
     public List<Post> getPostsByUser(@PathVariable String authorId) {
         return postRepository.findByAuthorId(authorId);
     }
+
+    @PostMapping("/posts/{postId}/like")
+    public Post likePost(@PathVariable String postId, HttpSession session) {
+        String username = (String) session.getAttribute("loggedInUser");
+
+        if (username == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You must be logged in to like posts");
+        }
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+
+        if (!post.getLikedBy().contains(username)) {
+            post.getLikedBy().add(username);
+            return postRepository.save(post);
+        } else {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "You have already liked this post");
+        }
+    }
+
 }

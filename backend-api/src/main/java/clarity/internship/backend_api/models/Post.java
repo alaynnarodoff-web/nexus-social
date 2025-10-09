@@ -4,6 +4,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Document(collection = "posts")
 public class Post {
@@ -12,14 +14,15 @@ public class Post {
     private String authorId;
     private String content;
     private String imageUrl;
-    private String authorAvatar; // ✅ NEW
+    private String authorAvatar;
     private Instant timestamp;
+    private String imageBase64;
+    private List<String> likedBy = new ArrayList<>();
 
     public Post() {
         this.timestamp = Instant.now();
     }
 
-    // Getters and setters
     public String getId() {
         return id;
     }
@@ -68,14 +71,20 @@ public class Post {
         this.timestamp = timestamp;
     }
 
-    private String imageBase64;
-
     public String getImageBase64() {
         return imageBase64;
     }
 
     public void setImageBase64(String imageBase64) {
         this.imageBase64 = imageBase64;
+    }
+
+    public List<String> getLikedBy() {
+        return likedBy;
+    }
+
+    public void setLikedBy(List<String> likedBy) {
+        this.likedBy = likedBy;
     }
 
 }

@@ -60,17 +60,141 @@
             text-decoration: none;
             font-size: 16px;
         }
+
+        .search-container {
+            margin-bottom: 30px;
+            position: relative;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .search-container label {
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .heart {
+            position: relative;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            transform: rotate(-45deg);
+            background-color: orange;
+            display: inline-block;
+            box-sizing: border-box;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .heart::before,
+        .heart::after {
+            content: "";
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: orange;
+            box-sizing: border-box;
+        }
+
+        .heart::before {
+            top: -12px;
+            left: 0;
+        }
+
+        .heart::after {
+            left: 12px;
+            top: 0;
+        }
+
+        .heart.liked {
+            background-color: orangered;
+        }
+
+        .heart.liked::before,
+        .heart.liked::after {
+            background-color: orangered;
+        }
+
+
+
+        #userSearch {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        #suggestionsList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            border: 1px solid #ccc;
+            max-height: 150px;
+            overflow-y: auto;
+            background: white;
+            position: absolute;
+            width: 300px;
+            z-index: 1000;
+            top: 70px;
+
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            border-radius: 4px;
+        }
+
+        #suggestionsList li {
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        #suggestionsList li:hover {
+            background-color: #f0f0f0;
+        }
     </style>
 </head>
 
 <body>
     <div class="center-container">
         <h2>All Posts</h2>
+
+        <div class="search-container">
+            <label for="userSearch">Search Users:</label>
+            <input type="text" id="userSearch" placeholder="Type a name..." autocomplete="off">
+            <ul id="suggestionsList" class="suggestions"></ul>
+        </div>
+
         <div id="postsContainer"></div>
         <a class="back-link" href="viewAccount.html">Back to Account</a>
     </div>
 
     <script>
+        let loggedInUsername = null;
+
+        fetch('/getUser', {
+            credentials: 'include'
+        })
+            .then(response => {
+                if (!response.ok) throw new Error("Not logged in");
+                return response.json();
+            })
+            .then(user => {
+                loggedInUsername = user.username;
+                return fetch('/posts');
+            })
+            .then(response => response.json())
+            .then(posts => {
+
+            })
+            .catch(error => {
+                console.error(error);
+            });
+
         fetch('/posts')
             .then(response => response.json())
             .then(posts => {
@@ -83,7 +207,7 @@
                         const card = document.createElement('div');
                         card.className = 'post-card';
 
-                        // Avatar and author section
+
                         const authorContainer = document.createElement('div');
                         authorContainer.className = 'post-author';
 
@@ -98,13 +222,13 @@
                         authorContainer.appendChild(authorName);
                         card.appendChild(authorContainer);
 
-                        // Post content
+
                         const content = document.createElement('div');
                         content.className = 'post-content';
                         content.textContent = post.content;
                         card.appendChild(content);
 
-                        // Post image (optional)
+
                         if (post.imageBase64 && post.imageBase64.trim() !== "") {
                             const img = document.createElement('img');
                             img.className = 'post-image';
@@ -114,11 +238,53 @@
                         }
 
 
-                        // Timestamp
+                        const footerRow = document.createElement('div');
+                        footerRow.style.display = 'flex';
+                        footerRow.style.justifyContent = 'space-between';
+                        footerRow.style.alignItems = 'center';
+                        footerRow.style.width = '100%';
+
                         const timestamp = document.createElement('div');
                         timestamp.className = 'post-timestamp';
                         timestamp.textContent = "Posted: " + (post.timestamp ? new Date(post.timestamp).toLocaleString() : "");
-                        card.appendChild(timestamp);
+
+                        const heart = document.createElement('span');
+                        heart.className = 'heart';
+                        const likeCountSpan = document.createElement('span');
+                        likeCountSpan.style.marginLeft = '10px';
+                        likeCountSpan.textContent = post.likedBy ? post.likedBy.length : 0;
+
+                        heart.addEventListener('click', () => {
+                            fetch(`/posts/${post.id}/like`, {
+                                method: 'POST',
+                                credentials: 'include'
+                            })
+                                .then(response => {
+                                    if (response.ok) {
+                                        heart.classList.add('liked');
+                                        likeCountSpan.textContent = parseInt(likeCountSpan.textContent) + 1;
+                                    } else if (response.status === 409) {
+                                        alert("You already liked this post.");
+                                    } else if (response.status === 401) {
+                                        alert("Please log in to like posts.");
+                                    } else {
+                                        alert("An error occurred.");
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error("Error liking post:", err);
+                                    alert("Error liking post.");
+                                });
+                        });
+
+
+
+                        footerRow.appendChild(timestamp);
+                        footerRow.appendChild(heart);
+                        footerRow.appendChild(likeCountSpan);
+
+                        card.appendChild(footerRow);
+
 
                         container.appendChild(card);
                     });
@@ -128,6 +294,34 @@
                 document.getElementById('postsContainer').innerHTML = "<p>Error loading posts.</p>";
                 console.error(error);
             });
+
+        document.getElementById("userSearch").addEventListener("input", function () {
+            const query = this.value;
+            const suggestionsList = document.getElementById("suggestionsList");
+
+            if (query.length < 2) {
+                suggestionsList.innerHTML = "";
+                return;
+            }
+
+            fetch(`/users/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(users => {
+                    suggestionsList.innerHTML = "";
+
+                    users.forEach(user => {
+                        const li = document.createElement("li");
+                        li.textContent = user.displayName || user.username;
+                        li.addEventListener("click", () => {
+                            window.location.href = `profile.html?username=${user.username}`;
+                        });
+                        suggestionsList.appendChild(li);
+                    });
+                })
+                .catch(err => {
+                    console.error("Search error:", err);
+                });
+        });
     </script>
 </body>
 
