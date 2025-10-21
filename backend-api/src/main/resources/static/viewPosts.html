@@ -191,7 +191,6 @@
             width: 300px;
             z-index: 1000;
             top: 70px;
-
             left: 50%;
             transform: translateX(-50%);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -207,14 +206,11 @@
             background-color: #f0f0f0;
         }
 
-        /* Add these styles to the <style> block in viewPosts.html */
-
         .feed-toggle {
             margin-bottom: 20px;
             border: 1px solid #ffd6b3;
             border-radius: 8px;
             overflow: hidden;
-            /* This makes the corners look nice */
         }
 
         .feed-btn {
@@ -270,7 +266,6 @@
         const friendsBtn = document.getElementById('friends-feed-btn');
         const searchInput = document.getElementById("userSearch");
         const suggestionsList = document.getElementById("suggestionsList");
-
 
         function fetchAndDisplayPosts(url) {
             postsContainer.innerHTML = "<h2>Loading posts...</h2>";
@@ -330,7 +325,37 @@
                         }
                         const likeCountSpan = document.createElement('span');
                         likeCountSpan.textContent = post.likedBy ? post.likedBy.length : 0;
-                        heartIcon.addEventListener('click', () => { /* ... like logic ... */ });
+                        heartIcon.addEventListener('click', () => {
+                            fetch(`/posts/${post.id}/like`, {
+                                method: 'POST',
+                                credentials: 'include'
+                            })
+                                .then(response => {
+                                    if (response.status === 401) {
+                                        alert("Please log in to like posts.");
+                                        return;
+                                    }
+                                    if (!response.ok) {
+                                        alert("An error occurred.");
+                                        return;
+                                    }
+                                    return response.json();
+                                })
+                                .then(updatedPost => {
+                                    if (!updatedPost) return;
+                                    likeCountSpan.textContent = updatedPost.likedBy.length;
+                                    if (updatedPost.likedBy.includes(loggedInUsername)) {
+                                        heartIcon.classList.remove('fa-regular');
+                                        heartIcon.classList.add('fa-solid', 'liked');
+                                    } else {
+                                        heartIcon.classList.add('fa-regular');
+                                        heartIcon.classList.remove('fa-solid', 'liked');
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error("Error toggling like:", err);
+                                });
+                        });
 
                         const commentIcon = document.createElement('i');
                         commentIcon.className = 'fa-regular fa-comment comment-icon';
@@ -391,14 +416,13 @@
                         });
 
                         postsContainer.appendChild(card);
-                    });
-                })
+                    }); // End of posts.forEach
+                }) // End of .then(posts => ...)
                 .catch(error => {
                     postsContainer.innerHTML = "<p>Error loading posts. Please try again.</p>";
                     console.error(error);
                 });
-        }
-
+        } // End of fetchAndDisplayPosts
 
         function appendComment(commentsListContainer, comment) {
             const commentDiv = document.createElement('div');
@@ -424,7 +448,6 @@
             commentsListContainer.appendChild(commentDiv);
         }
 
-
         everyoneBtn.addEventListener('click', () => {
             friendsBtn.classList.remove('active');
             everyoneBtn.classList.add('active');
@@ -436,7 +459,6 @@
             friendsBtn.classList.add('active');
             fetchAndDisplayPosts('/posts/friends');
         });
-
 
         searchInput.addEventListener("input", function () {
             const query = this.value;
@@ -459,7 +481,6 @@
                 })
                 .catch(err => console.error("Search error:", err));
         });
-
 
         fetch('/getUser', { credentials: 'include' })
             .then(response => {

@@ -68,22 +68,24 @@ public class PostController {
     }
 
     @PostMapping("/posts/{postId}/like")
-    public Post likePost(@PathVariable String postId, HttpSession session) {
+    public Post toggleLikePost(@PathVariable String postId, HttpSession session) {
         String username = (String) session.getAttribute("loggedInUser");
-
         if (username == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You must be logged in to like posts");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You must be logged in to like or unlike posts");
         }
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
 
-        if (!post.getLikedBy().contains(username)) {
-            post.getLikedBy().add(username);
-            return postRepository.save(post);
+        if (post.getLikedBy().contains(username)) {
+
+            post.getLikedBy().remove(username);
         } else {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "You have already liked this post");
+
+            post.getLikedBy().add(username);
         }
+
+        return postRepository.save(post);
     }
 
     @PostMapping("/posts/{postId}/comment")
