@@ -65,11 +65,18 @@ public class AuthenticationController {
     @GetMapping("/getUser")
     public User getUser() {
         Object loggedIn = session.getAttribute("loggedInUser");
-        String user = loggedIn.toString();
-        User existingUser = userRepository.findOneByUsername(user);
-        if (existingUser == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No User is currently logged in");
+
+        if (loggedIn == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No user is currently logged in");
         }
+
+        String username = loggedIn.toString();
+        User existingUser = userRepository.findOneByUsername(username);
+
+        if (existingUser == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User from session not found");
+        }
+
         return existingUser;
     }
 

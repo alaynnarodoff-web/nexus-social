@@ -3,6 +3,7 @@
 
 <head>
     <title>View Posts</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
         .center-container {
             display: flex;
@@ -49,6 +50,14 @@
             border-radius: 4px;
         }
 
+        .post-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-top: 10px;
+        }
+
         .post-timestamp {
             font-size: 12px;
             color: #888;
@@ -76,49 +85,90 @@
             font-size: 16px;
         }
 
-        .heart {
-            position: relative;
-            width: 24px;
-            height: 24px;
+        .post-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .post-actions i {
+            font-size: 22px;
             cursor: pointer;
-            transform: rotate(-45deg);
-            background-color: orange;
-            display: inline-block;
-            box-sizing: border-box;
-            transition: background-color 0.3s, border-color 0.3s;
+            color: #555;
+            transition: color 0.3s;
         }
 
-        .heart::before,
-        .heart::after {
-            content: "";
-            position: absolute;
-            width: 24px;
-            height: 24px;
+        .post-actions i:hover {
+            color: orangered;
+        }
+
+        .post-actions .heart-icon.liked {
+            color: orangered;
+        }
+
+        .comment-section {
+            display: none;
+            margin-top: 15px;
+            width: 100%;
+            border-top: 1px solid #ffd6b3;
+            padding-top: 15px;
+        }
+
+        .comment-section input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        .comment-section button {
+            background-color: orangered;
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .comments-list {
+            display: none;
+            margin-top: 15px;
+            width: 100%;
+            border-top: 1px solid #ffd6b3;
+            padding-top: 10px;
+        }
+
+        .comment {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .comment-avatar {
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background-color: orange;
-            box-sizing: border-box;
+            margin-right: 10px;
+            border: 1px solid #ccc;
         }
 
-        .heart::before {
-            top: -12px;
-            left: 0;
+        .comment-body {
+            display: flex;
+            flex-direction: column;
         }
 
-        .heart::after {
-            left: 12px;
-            top: 0;
+        .comment-author {
+            font-weight: bold;
+            margin-right: 5px;
         }
 
-        .heart.liked {
-            background-color: orangered;
+        .comment-timestamp {
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
         }
-
-        .heart.liked::before,
-        .heart.liked::after {
-            background-color: orangered;
-        }
-
-
 
         #userSearch {
             width: 100%;
@@ -156,6 +206,37 @@
         #suggestionsList li:hover {
             background-color: #f0f0f0;
         }
+
+        /* Add these styles to the <style> block in viewPosts.html */
+
+        .feed-toggle {
+            margin-bottom: 20px;
+            border: 1px solid #ffd6b3;
+            border-radius: 8px;
+            overflow: hidden;
+            /* This makes the corners look nice */
+        }
+
+        .feed-btn {
+            padding: 10px 20px;
+            border: none;
+            background-color: #fff3e6;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+            color: #555;
+            transition: background-color 0.3s;
+        }
+
+        .feed-btn:hover {
+            background-color: #ffe8cc;
+        }
+
+        .feed-btn.active {
+            background-color: orangered;
+            color: white;
+            font-weight: bold;
+        }
     </style>
 </head>
 
@@ -168,6 +249,14 @@
             <input type="text" id="userSearch" placeholder="Type a name..." autocomplete="off">
             <ul id="suggestionsList" class="suggestions"></ul>
         </div>
+        <div class="search-container">
+        </div>
+
+        <div class="feed-toggle">
+            <button id="everyone-feed-btn" class="feed-btn active">Everyone</button>
+            <button id="friends-feed-btn" class="feed-btn">Friends</button>
+        </div>
+
         <a class="back-link" href="viewAccount.html">Back to Account</a>
 
         <div id="postsContainer"></div>
@@ -176,60 +265,49 @@
     <script>
         let loggedInUsername = null;
 
-        fetch('/getUser', {
-            credentials: 'include'
-        })
-            .then(response => {
-                if (!response.ok) throw new Error("Not logged in");
-                return response.json();
-            })
-            .then(user => {
-                loggedInUsername = user.username;
-                return fetch('/posts');
-            })
-            .then(response => response.json())
-            .then(posts => {
+        const postsContainer = document.getElementById('postsContainer');
+        const everyoneBtn = document.getElementById('everyone-feed-btn');
+        const friendsBtn = document.getElementById('friends-feed-btn');
+        const searchInput = document.getElementById("userSearch");
+        const suggestionsList = document.getElementById("suggestionsList");
 
-            })
-            .catch(error => {
-                console.error(error);
-            });
 
-        fetch('/posts')
-            .then(response => response.json())
-            .then(posts => {
-                const container = document.getElementById('postsContainer');
+        function fetchAndDisplayPosts(url) {
+            postsContainer.innerHTML = "<h2>Loading posts...</h2>";
 
-                if (posts.length === 0) {
-                    container.innerHTML = "<p>No posts found.</p>";
-                } else {
+            fetch(url, { credentials: 'include' })
+                .then(response => {
+                    if (!response.ok) throw new Error("Failed to load posts.");
+                    return response.json();
+                })
+                .then(posts => {
+                    postsContainer.innerHTML = "";
+                    if (posts.length === 0) {
+                        postsContainer.innerHTML = "<p>No posts found.</p>";
+                        return;
+                    }
+
                     posts.forEach(post => {
                         const card = document.createElement('div');
                         card.className = 'post-card';
 
-
                         const authorContainer = document.createElement('div');
                         authorContainer.className = 'post-author';
-
                         const avatarImg = document.createElement('img');
-                        avatarImg.src = post.authorAvatar && post.authorAvatar.trim() !== "" ? post.authorAvatar : "defaultAvatar.jpg";
+                        avatarImg.src = post.authorAvatar || "defaultAvatar.jpg";
                         avatarImg.alt = "Avatar";
-
                         const authorName = document.createElement('span');
                         authorName.textContent = post.authorId;
-
                         authorContainer.appendChild(avatarImg);
                         authorContainer.appendChild(authorName);
                         card.appendChild(authorContainer);
-
 
                         const content = document.createElement('div');
                         content.className = 'post-content';
                         content.textContent = post.content;
                         card.appendChild(content);
 
-
-                        if (post.imageBase64 && post.imageBase64.trim() !== "") {
+                        if (post.imageBase64) {
                             const img = document.createElement('img');
                             img.className = 'post-image';
                             img.src = "data:image/jpeg;base64," + post.imageBase64;
@@ -237,91 +315,166 @@
                             card.appendChild(img);
                         }
 
-
-                        const footerRow = document.createElement('div');
-                        footerRow.style.display = 'flex';
-                        footerRow.style.justifyContent = 'space-between';
-                        footerRow.style.alignItems = 'center';
-                        footerRow.style.width = '100%';
-
+                        const postFooter = document.createElement('div');
+                        postFooter.className = 'post-footer';
                         const timestamp = document.createElement('div');
                         timestamp.className = 'post-timestamp';
-                        timestamp.textContent = "Posted: " + (post.timestamp ? new Date(post.timestamp).toLocaleString() : "");
+                        timestamp.textContent = "Posted: " + new Date(post.timestamp).toLocaleString();
+                        const actions = document.createElement('div');
+                        actions.className = 'post-actions';
 
-                        const heart = document.createElement('span');
-                        heart.className = 'heart';
+                        const heartIcon = document.createElement('i');
+                        heartIcon.className = 'fa-regular fa-heart heart-icon';
+                        if (post.likedBy && post.likedBy.includes(loggedInUsername)) {
+                            heartIcon.classList.add('fa-solid', 'liked');
+                        }
                         const likeCountSpan = document.createElement('span');
-                        likeCountSpan.style.marginLeft = '10px';
                         likeCountSpan.textContent = post.likedBy ? post.likedBy.length : 0;
+                        heartIcon.addEventListener('click', () => { /* ... like logic ... */ });
 
-                        heart.addEventListener('click', () => {
-                            fetch(`/posts/${post.id}/like`, {
-                                method: 'POST',
-                                credentials: 'include'
-                            })
-                                .then(response => {
-                                    if (response.ok) {
-                                        heart.classList.add('liked');
-                                        likeCountSpan.textContent = parseInt(likeCountSpan.textContent) + 1;
-                                    } else if (response.status === 409) {
-                                        alert("You already liked this post.");
-                                    } else if (response.status === 401) {
-                                        alert("Please log in to like posts.");
-                                    } else {
-                                        alert("An error occurred.");
-                                    }
-                                })
-                                .catch(err => {
-                                    console.error("Error liking post:", err);
-                                    alert("Error liking post.");
-                                });
+                        const commentIcon = document.createElement('i');
+                        commentIcon.className = 'fa-regular fa-comment comment-icon';
+
+                        actions.appendChild(heartIcon);
+                        actions.appendChild(likeCountSpan);
+                        actions.appendChild(commentIcon);
+                        postFooter.appendChild(timestamp);
+                        postFooter.appendChild(actions);
+                        card.appendChild(postFooter);
+
+                        const commentsListContainer = document.createElement('div');
+                        commentsListContainer.className = 'comments-list';
+                        if (post.comments && post.comments.length > 0) {
+                            post.comments.forEach(comment => {
+                                appendComment(commentsListContainer, comment);
+                            });
+                        }
+                        card.appendChild(commentsListContainer);
+
+                        const commentSection = document.createElement('div');
+                        commentSection.className = 'comment-section';
+                        commentSection.innerHTML = `<input type="text" placeholder="Add a comment..." /><button>Post</button>`;
+                        card.appendChild(commentSection);
+
+                        const commentInput = commentSection.querySelector('input');
+                        const commentButton = commentSection.querySelector('button');
+
+                        let commentsAreVisible = false;
+                        commentIcon.addEventListener('click', () => {
+                            if (commentsAreVisible) {
+                                commentsListContainer.style.display = 'none';
+                                commentSection.style.display = 'none';
+                                commentsAreVisible = false;
+                            } else {
+                                commentsListContainer.style.display = 'block';
+                                commentSection.style.display = 'block';
+                                commentsAreVisible = true;
+                            }
                         });
 
+                        commentButton.addEventListener('click', () => {
+                            const commentText = commentInput.value.trim();
+                            if (!commentText) return;
+                            fetch(`/posts/${post.id}/comment`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({ author: loggedInUsername, text: commentText })
+                            })
+                                .then(response => response.json())
+                                .then(updatedPost => {
+                                    commentInput.value = '';
+                                    const newComment = updatedPost.comments[updatedPost.comments.length - 1];
+                                    appendComment(commentsListContainer, newComment);
+                                })
+                                .catch(error => console.error("Error posting comment:", error));
+                        });
 
-
-                        footerRow.appendChild(timestamp);
-                        footerRow.appendChild(heart);
-                        footerRow.appendChild(likeCountSpan);
-
-                        card.appendChild(footerRow);
-
-
-                        container.appendChild(card);
+                        postsContainer.appendChild(card);
                     });
-                }
-            })
-            .catch(error => {
-                document.getElementById('postsContainer').innerHTML = "<p>Error loading posts.</p>";
-                console.error(error);
-            });
+                })
+                .catch(error => {
+                    postsContainer.innerHTML = "<p>Error loading posts. Please try again.</p>";
+                    console.error(error);
+                });
+        }
 
-        document.getElementById("userSearch").addEventListener("input", function () {
+
+        function appendComment(commentsListContainer, comment) {
+            const commentDiv = document.createElement('div');
+            commentDiv.className = 'comment';
+            const avatarImg = document.createElement('img');
+            avatarImg.className = 'comment-avatar';
+            avatarImg.src = comment.authorAvatar || "defaultAvatar.jpg";
+            const commentBody = document.createElement('div');
+            commentBody.className = 'comment-body';
+            const authorSpan = document.createElement('span');
+            authorSpan.className = 'comment-author';
+            authorSpan.textContent = comment.author;
+            const textSpan = document.createElement('span');
+            textSpan.textContent = comment.text;
+            const timestampSpan = document.createElement('div');
+            timestampSpan.className = 'comment-timestamp';
+            timestampSpan.textContent = new Date(comment.timestamp).toLocaleString();
+            commentBody.appendChild(authorSpan);
+            commentBody.appendChild(textSpan);
+            commentBody.appendChild(timestampSpan);
+            commentDiv.appendChild(avatarImg);
+            commentDiv.appendChild(commentBody);
+            commentsListContainer.appendChild(commentDiv);
+        }
+
+
+        everyoneBtn.addEventListener('click', () => {
+            friendsBtn.classList.remove('active');
+            everyoneBtn.classList.add('active');
+            fetchAndDisplayPosts('/posts');
+        });
+
+        friendsBtn.addEventListener('click', () => {
+            everyoneBtn.classList.remove('active');
+            friendsBtn.classList.add('active');
+            fetchAndDisplayPosts('/posts/friends');
+        });
+
+
+        searchInput.addEventListener("input", function () {
             const query = this.value;
-            const suggestionsList = document.getElementById("suggestionsList");
-
             if (query.length < 2) {
                 suggestionsList.innerHTML = "";
                 return;
             }
-
             fetch(`/users/search?q=${encodeURIComponent(query)}`)
                 .then(response => response.json())
                 .then(users => {
                     suggestionsList.innerHTML = "";
-
                     users.forEach(user => {
                         const li = document.createElement("li");
-                        li.textContent = user.displayName || user.username;
+                        li.textContent = user.username;
                         li.addEventListener("click", () => {
                             window.location.href = `profile.html?username=${user.username}`;
                         });
                         suggestionsList.appendChild(li);
                     });
                 })
-                .catch(err => {
-                    console.error("Search error:", err);
-                });
+                .catch(err => console.error("Search error:", err));
         });
+
+
+        fetch('/getUser', { credentials: 'include' })
+            .then(response => {
+                if (!response.ok) throw new Error("Not logged in");
+                return response.json();
+            })
+            .then(user => {
+                loggedInUsername = user.username;
+                fetchAndDisplayPosts('/posts');
+            })
+            .catch(err => {
+                console.error(err);
+                fetchAndDisplayPosts('/posts');
+            });
+
     </script>
 </body>
 

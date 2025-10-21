@@ -74,7 +74,7 @@
             }).then(function (response) {
                 if (response.ok) {
                     sessionStorage.setItem("loggedInUser", username);
-                    window.location.href = "viewAccount.html";
+                    window.location.href = "viewPosts.html";
                 } else {
                     throw new Error(`Login failed: ${response.status}`);
                 }

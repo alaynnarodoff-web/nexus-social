@@ -18,6 +18,7 @@ public class Post {
     private Instant timestamp;
     private String imageBase64;
     private List<String> likedBy = new ArrayList<>();
+    private List<Comment> comments = new ArrayList<>();
 
     public Post() {
         this.timestamp = Instant.now();
@@ -85,6 +86,14 @@ public class Post {
 
     public void setLikedBy(List<String> likedBy) {
         this.likedBy = likedBy;
+    }
+
+    public List<Comment> getComments() {
+        return comments;
+    }
+
+    public void setComments(List<Comment> comments) {
+        this.comments = comments;
     }
 
 }

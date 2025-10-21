@@ -93,15 +93,36 @@
                 alert('An error occurred. Please try again later.');
             });
         });
-        const postInput = document.getElementById('postInput');
-        postInput.addEventListener('change', function (event) {
+
+        const imageFileInput = document.getElementById('imageFileInput');
+
+
+        imageFileInput.addEventListener('change', function (event) {
             const file = event.target.files[0];
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const postBase64 = e.target.result;
-                document.getElementById('postImage').src = postBase64;
+
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function (e) {
+
+                    let previewImage = document.getElementById('imagePreview');
+
+
+                    if (!previewImage) {
+                        previewImage = document.createElement('img');
+                        previewImage.id = 'imagePreview';
+                        previewImage.style.maxWidth = '200px';
+                        previewImage.style.marginTop = '10px';
+
+                        imageFileInput.after(previewImage);
+                    }
+
+                    previewImage.src = e.target.result;
+                }
+
+                reader.readAsDataURL(file);
             }
-            reader.readAsDataURL(file);
         });
     </script>
 </body>
