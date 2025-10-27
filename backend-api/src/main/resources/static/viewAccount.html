@@ -3,37 +3,8 @@
 
 <head>
     <title>View and Edit Account Page</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
     <style>
-        .center-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .center-container img {
-            width: 120px;
-            height: auto;
-            margin-bottom: 20px;
-        }
-
-        .center-container a {
-            color: orangered;
-            margin-top: 20px;
-            text-decoration: none;
-            font-size: 16px;
-        }
-
-        .my-button {
-            background-color: orangered;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
         .showingUser {
             display: flex;
             flex-direction: column;
@@ -53,9 +24,10 @@
                 style="border-radius: 50%; margin-top: 10px; margin-left: 50px; border: 1px solid orangered;">
             <input type="file" id="avatarInput" name="avatar" accept="image/*">
         </div>
-        <div class="showingUser">
-            <span id="friendCount">Loading...</span>
-        </div>
+        <a href="friendsList.html" id="friendCountLink"
+            style="color: orangered; text-decoration: none; font-size: 16px;">
+            <span id="friendCount">Loading...</span> friends
+        </a>
 
 
         <a class="back-link" href="friendRequests.html">View Your Friend Requests</a>

@@ -4,28 +4,8 @@
 <head>
     <title>View Posts</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
     <style>
-        .center-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 40px 0;
-            font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
-        }
-
-        .post-card {
-            background: #fff3e6;
-            border: 1px solid #ffd6b3;
-            border-radius: 8px;
-            margin: 15px 0;
-            padding: 20px;
-            width: 350px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
         .post-author {
             display: flex;
             align-items: center;
@@ -61,13 +41,6 @@
         .post-timestamp {
             font-size: 12px;
             color: #888;
-        }
-
-        .back-link {
-            margin-top: 30px;
-            color: orangered;
-            text-decoration: none;
-            font-size: 16px;
         }
 
         .search-container {
@@ -120,15 +93,6 @@
             border-radius: 4px;
             border: 1px solid #ccc;
             font-size: 14px;
-        }
-
-        .comment-section button {
-            background-color: orangered;
-            color: white;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
         }
 
         .comments-list {
@@ -251,6 +215,7 @@
         <div class="feed-toggle">
             <button id="everyone-feed-btn" class="feed-btn active">Everyone</button>
             <button id="friends-feed-btn" class="feed-btn">Friends</button>
+            <button id="fof-feed-btn" class="feed-btn">Friends of Friends</button>
         </div>
 
         <a class="back-link" href="viewAccount.html">Back to Account</a>
@@ -264,6 +229,7 @@
         const postsContainer = document.getElementById('postsContainer');
         const everyoneBtn = document.getElementById('everyone-feed-btn');
         const friendsBtn = document.getElementById('friends-feed-btn');
+        const fofBtn = document.getElementById('fof-feed-btn');
         const searchInput = document.getElementById("userSearch");
         const suggestionsList = document.getElementById("suggestionsList");
 
@@ -416,13 +382,13 @@
                         });
 
                         postsContainer.appendChild(card);
-                    }); // End of posts.forEach
-                }) // End of .then(posts => ...)
+                    });
+                })
                 .catch(error => {
                     postsContainer.innerHTML = "<p>Error loading posts. Please try again.</p>";
                     console.error(error);
                 });
-        } // End of fetchAndDisplayPosts
+        }
 
         function appendComment(commentsListContainer, comment) {
             const commentDiv = document.createElement('div');
@@ -450,14 +416,23 @@
 
         everyoneBtn.addEventListener('click', () => {
             friendsBtn.classList.remove('active');
+            fofBtn.classList.remove('active');
             everyoneBtn.classList.add('active');
             fetchAndDisplayPosts('/posts');
         });
 
         friendsBtn.addEventListener('click', () => {
             everyoneBtn.classList.remove('active');
+            fofBtn.classList.remove('active');
             friendsBtn.classList.add('active');
             fetchAndDisplayPosts('/posts/friends');
+        });
+
+        fofBtn.addEventListener('click', () => {
+            everyoneBtn.classList.remove('active');
+            friendsBtn.classList.remove('active');
+            fofBtn.classList.add('active');
+            fetchAndDisplayPosts('/posts/fof');
         });
 
         searchInput.addEventListener("input", function () {

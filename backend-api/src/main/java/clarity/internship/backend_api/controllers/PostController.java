@@ -7,7 +7,6 @@ import clarity.internship.backend_api.models.Comment;
 import clarity.internship.backend_api.models.FriendRequest;
 import clarity.internship.backend_api.models.Post;
 import clarity.internship.backend_api.models.User;
-import clarity.internship.backend_api.models.FriendRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +15,8 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -134,5 +135,58 @@ public class PostController {
         }
         Sort sortByTimestampDesc = Sort.by(Sort.Direction.DESC, "timestamp");
         return postRepository.findByAuthorIdIn(friendUsernames, sortByTimestampDesc);
+    }
+
+    // In PostController.java
+
+    @GetMapping("/posts/fof")
+    public List<Post> getFriendsOfFriendsPosts(HttpSession session) {
+        String currentUser = (String) session.getAttribute("loggedInUser");
+        if (currentUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You must be logged in.");
+        }
+
+        List<FriendRequest> sentF1 = friendRequestRepository.findByRequestingUserIdAndAcceptedTrue(currentUser);
+        List<FriendRequest> receivedF1 = friendRequestRepository.findByRequestRecipientIdAndAcceptedTrue(currentUser);
+        Set<String> directFriends = new HashSet<>();
+        sentF1.forEach(fr -> directFriends.add(fr.getRequestRecipientId()));
+        receivedF1.forEach(fr -> directFriends.add(fr.getRequestingUserId()));
+
+        Set<String> friendsOfFriends = new HashSet<>();
+        if (!directFriends.isEmpty()) {
+            for (String friend : directFriends) {
+
+                List<FriendRequest> f2SentByFriend = friendRequestRepository
+                        .findByRequestingUserIdAndAcceptedTrue(friend);
+
+                List<FriendRequest> f2ReceivedByFriend = friendRequestRepository
+                        .findByRequestRecipientIdAndAcceptedTrue(friend);
+
+                for (FriendRequest fr : f2SentByFriend) {
+                    String potentialFoF = fr.getRequestRecipientId();
+
+                    if (!potentialFoF.equals(currentUser) && !directFriends.contains(potentialFoF)) {
+                        friendsOfFriends.add(potentialFoF);
+                    }
+                }
+
+                for (FriendRequest fr : f2ReceivedByFriend) {
+                    String potentialFoF = fr.getRequestingUserId();
+
+                    if (!potentialFoF.equals(currentUser) && !directFriends.contains(potentialFoF)) {
+                        friendsOfFriends.add(potentialFoF);
+                    }
+                }
+
+            }
+        }
+
+        if (friendsOfFriends.isEmpty()) {
+            return new ArrayList<>();
+        } else {
+            List<String> fofList = new ArrayList<>(friendsOfFriends);
+            Sort sortByTimestampDesc = Sort.by(Sort.Direction.DESC, "timestamp");
+            return postRepository.findByAuthorIdIn(fofList, sortByTimestampDesc);
+        }
     }
 }
