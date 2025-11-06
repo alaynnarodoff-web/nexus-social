@@ -1,19 +1,39 @@
-<template>
-  <div class="posts-container">
-    <h1>All Posts</h1>
-    <p>Welcome, {{ username }}!</p>
-    </div>
-</template>
-
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { usePostsStore } from '@/stores/posts'
+import { storeToRefs } from 'pinia'
+const postsStore = usePostsStore()
+const { posts, loading, error } = storeToRefs(postsStore)
+const activeFeed = ref<'everyone' | 'friends' | 'fof'>('everyone')
 
-const username = ref(sessionStorage.getItem('loggedInUser') || 'User')
-</script>
+const searchQuery = ref('')
+const suggestions = ref<{ username: string }[]>([])
 
-<style scoped>
-.posts-container {
-  padding: 2rem;
-  text-align: center;
+const feedOptions = {
+  everyone: 'Everyone',
+  friends: 'Friends',
+  fof: 'Friends of Friends',
 }
-</style>
+
+const router = useRouter()
+
+
+onMounted(async () => {
+  await postsStore.getNewsFeed()
+})
+</script>
+<template>
+  <v-container>
+    <v-card
+      v-for="post in posts"
+      :key="post.id"
+      class="mb-4"
+      style="color: black"
+    >
+      <v-card-text>
+        {{ post.content }}
+      </v-card-text>
+    </v-card>
+  </v-container>
+</template>

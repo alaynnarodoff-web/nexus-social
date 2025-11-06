@@ -13,27 +13,27 @@ export const useUserStore = defineStore('user', {
                 const res = await fetch('/api/login', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ username, password }),
+                    credentials: 'include',
                 })
-                if (!res.ok) {
 
+                if (!res.ok) {
                     const text = await res.text()
                     throw new Error(text || `Login failed with status ${res.status}`)
                 }
 
-                const responseText = await res.text();
-
-                this.user = username;
+                const data = await res.json()
+                this.user = data.username || username
                 this.error = null
-                return responseText
-
+                return data
             } catch (err: any) {
                 this.error = err.message || String(err)
                 this.user = null
                 throw err
             }
-        },
-    }
+        }
+
+    },
 })

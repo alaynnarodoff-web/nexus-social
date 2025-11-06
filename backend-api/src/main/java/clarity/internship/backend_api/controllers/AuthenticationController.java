@@ -41,7 +41,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
-    public String login(@RequestBody User user) {
+    public User login(@RequestBody User user) {
         try {
             user.setPassword(hashPassword(user.getPassword()));
         } catch (Exception e) {
@@ -56,7 +56,7 @@ public class AuthenticationController {
 
         {
             session.setAttribute("loggedInUser", user.getUsername());
-            return "Login Successful for " + user.getUsername();
+            return user;
         } else {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Username or Password");
         }
