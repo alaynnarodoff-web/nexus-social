@@ -17,6 +17,7 @@ public class User {
     private String avatar = "";
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password = "";
+    private String bio;
 
     public String getId() {
         return id;
@@ -82,4 +83,11 @@ public class User {
         this.avatar = avatar;
     }
 
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
 }

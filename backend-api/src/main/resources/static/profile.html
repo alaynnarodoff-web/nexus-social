@@ -3,6 +3,7 @@
 
 <head>
     <title>User Profile</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
     <style>
         body {
             font-family: Cambria, serif;
@@ -20,16 +21,6 @@
             border-radius: 50%;
             border: 2px solid orangered;
         }
-
-        .post-card {
-            margin: 10px auto;
-            background: #fff3e6;
-            border: 1px solid #ffd6b3;
-            border-radius: 8px;
-            width: 350px;
-            padding: 15px;
-            text-align: left;
-        }
     </style>
 </head>
 
@@ -40,30 +31,82 @@
         <p id="bio"></p>
     </div>
 
-    <h3>User Posts</h3>
+    <h3 id="userPostsHeader">Loading posts...</h3>
+
+    <button class="my-button" id="friendRequestButton">Send them a friend request!</button>
+
+    <a class="back-link" href="viewPosts.html">Back to Main Posts</a>
     <div id="postsContainer"></div>
 
+
     <script>
+        let friendRequestButton = document.getElementById("friendRequestButton");
         const urlParams = new URLSearchParams(window.location.search);
         const username = urlParams.get('username');
+
+
+        friendRequestButton.addEventListener("click", function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const recipientUsername = urlParams.get('username');
+
+            fetch(`/friends/request?toUser=${recipientUsername}`, {
+                method: "POST"
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error("Failed to send request");
+                    return res.text();
+                })
+                .then(msg => {
+                    friendRequestButton.textContent = "Friend Request Sent!";
+                    friendRequestButton.disabled = true;
+                    friendRequestButton.style.backgroundColor = "gray";
+                    alert(msg);
+                })
+                .catch(err => {
+                    alert("Error sending friend request.");
+                    console.error(err);
+                });
+        });
+
 
         if (!username) {
             document.body.innerHTML = "<p>No user specified.</p>";
         } else {
-            // Fetch user info
             fetch(`/users/${username}`)
                 .then(res => res.json())
                 .then(user => {
+                    document.getElementById("userPostsHeader").textContent = `${user.displayName || user.username}'s Posts`;
                     document.getElementById("username").textContent = user.displayName || user.username;
-                    document.getElementById("bio").textContent = user.bio || "";
-                    document.getElementById("avatar").src = user.avatar || "defaultAvatar.jpg";
+                    document.getElementById("bio").textContent = user.bio || "This user hasn't added a bio yet.";
+                    if (user.avatar && user.avatar.trim() !== "") {
+                        document.getElementById("avatar").src = user.avatar;
+                    } else {
+                        document.getElementById("avatar").src = "defaultAvatar.jpg";
+                    }
+
                 })
                 .catch(err => {
                     document.body.innerHTML = "<p>User not found.</p>";
                     console.error(err);
                 });
+            fetch('/getUser')
+                .then(res => res.json())
+                .then(currentUser => {
+                    if (!currentUser || !currentUser.username) return;
 
-            // Fetch user posts
+                    fetch(`/friends/areFriends?user1=${currentUser.username}&user2=${username}`)
+                        .then(res => res.json())
+                        .then(areFriends => {
+                            if (areFriends) {
+                                friendRequestButton.textContent = "Friends";
+                                friendRequestButton.disabled = true;
+                                friendRequestButton.style.backgroundColor = "gray";
+                                friendRequestButton.style.cursor = "default";
+                            }
+                        });
+                });
+
+
             fetch(`/posts/user/${username}`)
                 .then(res => res.json())
                 .then(posts => {

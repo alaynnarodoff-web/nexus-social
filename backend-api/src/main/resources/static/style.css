@@ -1,0 +1,52 @@
+.post-card {
+    background: #fff3e6;
+    border: 1px solid #ffd6b3;
+    border-radius: 8px;
+    margin: 15px 0;
+    padding: 20px;
+    width: 350px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.center-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 0;
+    height: 100vh;
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+.my-button {
+    background-color: orangered;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 20px 0 0 0;
+}
+
+.center-container img {
+    width: 120px;
+    height: auto;
+    margin-bottom: 20px;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 30px;
+    color: orangered;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.center-container a {
+    color: orangered;
+    margin-top: 20px;
+    text-decoration: none;
+    font-size: 16px;
+}

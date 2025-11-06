@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,7 +41,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
-    public String login(@RequestBody User user) {
+    public User login(@RequestBody User user) {
         try {
             user.setPassword(hashPassword(user.getPassword()));
         } catch (Exception e) {
@@ -55,7 +56,7 @@ public class AuthenticationController {
 
         {
             session.setAttribute("loggedInUser", user.getUsername());
-            return "Login Successful for " + user.getUsername();
+            return user;
         } else {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Username or Password");
         }
@@ -64,35 +65,44 @@ public class AuthenticationController {
     @GetMapping("/getUser")
     public User getUser() {
         Object loggedIn = session.getAttribute("loggedInUser");
-        String user = loggedIn.toString();
-        User existingUser = userRepository.findOneByUsername(user);
-        if (existingUser == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No User is currently logged in");
+
+        if (loggedIn == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No user is currently logged in");
         }
+
+        String username = loggedIn.toString();
+        User existingUser = userRepository.findOneByUsername(username);
+
+        if (existingUser == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User from session not found");
+        }
+
         return existingUser;
     }
 
     @PutMapping("/updateUser")
     public String updateUser(@RequestBody User user) {
+        String username = (String) session.getAttribute("loggedInUser");
 
-        Object loggedIn = session.getAttribute("loggedInUser");
-        User currentUser = (User) loggedIn;
-        if (!currentUser.getUsername().equals(user.getUsername())) {
+        if (username == null || !username.equals(user.getUsername())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You can only update your own account");
         }
-        if (userRepository.findOneByUsername(user.getUsername()) != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
-        } else {
-            User existingUser = userRepository.findOneByUsername(user.getUsername());
-            existingUser.setUsername(user.getUsername());
-            existingUser.setEmail(user.getEmail());
-            existingUser.setFirstName(user.getFirstName());
-            existingUser.setLastName(user.getLastName());
-            existingUser.setPhone(user.getPhone());
-            existingUser.setAvatar(user.getAvatar());
-            userRepository.save(existingUser);
-            return "Congratulations, you have created an account with the username " + user.getUsername();
+
+        User existingUser = userRepository.findOneByUsername(user.getUsername());
+
+        if (existingUser == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
+
+        existingUser.setEmail(user.getEmail());
+        existingUser.setFirstName(user.getFirstName());
+        existingUser.setLastName(user.getLastName());
+        existingUser.setPhone(user.getPhone());
+        existingUser.setAvatar(user.getAvatar());
+        existingUser.setBio(user.getBio());
+
+        userRepository.save(existingUser);
+        return "User updated successfully";
     }
 
     @DeleteMapping("/logout")
@@ -116,6 +126,15 @@ public class AuthenticationController {
         return userRepository
                 .findByUsernameContainingIgnoreCaseOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(query,
                         query, query);
+    }
+
+    @GetMapping("/users/{username}")
+    public User getUserByUsername(@PathVariable String username) {
+        User user = userRepository.findOneByUsername(username);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+        }
+        return user;
     }
 
 }

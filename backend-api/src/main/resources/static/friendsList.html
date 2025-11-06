@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Your Friends</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <style>
+        body {
+            font-family: Cambria, serif;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .friend-list-container {
+            max-width: 400px;
+            margin: 20px auto;
+            text-align: left;
+        }
+
+        .friend-item {
+            background: #fff3e6;
+            border: 1px solid #ffd6b3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .friend-item a {
+            color: orangered;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .friend-item a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Your Friends</h2>
+    <div id="friendsListContainer" class="friend-list-container">
+        <p>Loading friends...</p>
+    </div>
+    <a class="back-link" href="viewAccount.html">Back to Account</a>
+
+    <script>
+        const container = document.getElementById("friendsListContainer");
+        let currentUsername = null;
+
+        fetch('/getUser', { credentials: 'include' })
+            .then(response => {
+                if (!response.ok) throw new Error("Not logged in");
+                return response.json();
+            })
+            .then(user => {
+                currentUsername = user.username;
+                return fetch('/friends', { credentials: 'include' });
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Failed to load friends list");
+                return response.json();
+            })
+            .then(friendships => {
+                container.innerHTML = "";
+
+                if (friendships.length === 0) {
+                    container.innerHTML = "<p>You haven't added any friends yet.</p>";
+                    return;
+                }
+
+                const addedFriends = new Set();
+
+                friendships.forEach(friendship => {
+                    let friendUsername = "";
+                    if (friendship.requestingUserId === currentUsername) {
+                        friendUsername = friendship.requestRecipientId;
+                    } else {
+                        friendUsername = friendship.requestingUserId;
+                    }
+
+                    if (friendUsername && !addedFriends.has(friendUsername)) {
+                        const friendDiv = document.createElement('div');
+                        friendDiv.className = 'friend-item';
+
+                        const friendLink = document.createElement('a');
+                        friendLink.href = `profile.html?username=${encodeURIComponent(friendUsername)}`;
+                        friendLink.textContent = friendUsername;
+
+                        friendDiv.appendChild(friendLink);
+                        container.appendChild(friendDiv);
+
+                        addedFriends.add(friendUsername);
+                    }
+                });
+
+                if (addedFriends.size === 0) {
+                    container.innerHTML = "<p>You haven't added any friends yet.</p>";
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                container.innerHTML = `<p>Error loading friends: ${error.message}. Please log in.</p>`;
+            });
+    </script>
+</body>
+
+</html>
