@@ -2,7 +2,7 @@
 # THE ASSEMBLY LINE (Pipeline Definitions)
 # =========================================================
 
-# The order of operations. 
+# The order of operations.
 # If 'test' fails, the pipeline stops. We never 'build' broken code.
 stages:
   - test
@@ -13,62 +13,69 @@ variables:
   # This constructs the name tag for our Docker image.
   # It will look like: registry.gitlab.com/your-name/project/backend-api:a1b2c3d
   IMAGE_TAG: $CI_REGISTRY_IMAGE/backend-api:$CI_COMMIT_SHORT_SHA
-  
+  TEXT_CLASSIFIER_IMAGE_TAG: $CI_REGISTRY_IMAGE/text-classifier:$CI_COMMIT_SHORT_SHA
+
   # Tell Gradle to shut down immediately after finishing tasks (saves memory in CI)
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
-
 
 # =========================================================
 # JOB 1: THE GATEKEEPER (Running Unit Tests)
 # =========================================================
 test_job:
   stage: test
-  
+
   # We need a computer that has Java 21 installed to check our code.
   image: eclipse-temurin:21-jdk-alpine
-  
+
   script:
     - echo "Starting the quality check..."
-    
+
     # IMPORTANT: Your code lives in a subfolder, so we must step into it.
     - cd backend-api
-    
+
     # Sometimes the permissions get lost in git, so we make the script executable.
     - chmod +x ./gradlew
-    
+
     # Run the tests! If this fails, the whole pipeline turns red.
     - ./gradlew test
-
 
 # =========================================================
 # JOB 2: THE PACKAGER (Docker Build & Push)
 # =========================================================
 build_job:
   stage: build
-  
+
   # We need a computer that has Docker installed to build the image.
   image: docker:20.10.16
-  
+
   # We need a "Docker Engine" running inside our job to perform the build.
   # This is often called "Docker-in-Docker" (dind).
   services:
     - docker:20.10.16-dind
-    
+
   before_script:
     # Before we build, we need to log into the GitLab Container Registry.
     # GitLab provides these passwords automatically for every job.
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-    
+
   script:
     - echo "🏗️ Building the Docker container..."
-    
+
     # Step into the subfolder again (where the Dockerfile is)
     - cd backend-api
-    
+
     # Build the image using the recipe in 'Dockerfile'
     - docker build -t $IMAGE_TAG .
-    
+
     - echo "Shipping the container to the Registry..."
-    
+
     # Upload the finished image to GitLab
     - docker push $IMAGE_TAG
+
+    - echo "Building the Text Classifier Docker container..."
+    # Step into the text-classifier subfolder
+    - cd ../text-classifier
+    # Build the text-classifier image using its Dockerfile
+    - docker build -t $TEXT_CLASSIFIER_IMAGE_TAG .
+    - echo "Shipping the Text Classifier container to the Registry..."
+    - docker push $TEXT_CLASSIFIER_IMAGE_TAG
