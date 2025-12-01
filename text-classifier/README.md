@@ -121,7 +121,7 @@ The API includes these default classification categories:
 
 ```json
 {
-  "text": "Your input text",
+  "text": "Lamar Jackson is the GOAT",
   "classification": [
     { "category": "politics", "score": 0.892 },
     { "category": "business", "score": 0.076 },
@@ -133,10 +133,10 @@ The API includes these default classification categories:
   },
   "entities": [
     {
-      "text": "Donald Trump",
+      "text": "Lamar Jackson",
       "label": "PER",
       "confidence": 0.999,
-      "original": "Donald",
+      "original": "Lamar Jackson",
       "expansion_method": "text_analysis"
     }
   ]
