@@ -112,12 +112,16 @@ public class AuthenticationController {
     }
 
     private String hashPassword(String password) {
+        if (password == null) {
+            password = "";
+        }
+
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hashedPassword = md.digest(password.getBytes());
+            byte[] hashedPassword = md.digest(password.getBytes("UTF-8"));
             return new String(hashedPassword, "UTF-8");
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "SHA-256 Algorithm not Found");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Password hashing failed");
         }
     }
 

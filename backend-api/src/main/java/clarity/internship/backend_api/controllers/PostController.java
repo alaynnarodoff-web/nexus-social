@@ -7,6 +7,7 @@ import clarity.internship.backend_api.models.Comment;
 import clarity.internship.backend_api.models.FriendRequest;
 import clarity.internship.backend_api.models.Post;
 import clarity.internship.backend_api.models.User;
+import clarity.internship.backend_api.controllers.FriendsController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
@@ -137,8 +138,6 @@ public class PostController {
         return postRepository.findByAuthorIdIn(friendUsernames, sortByTimestampDesc);
     }
 
-    // In PostController.java
-
     @GetMapping("/posts/fof")
     public List<Post> getFriendsOfFriendsPosts(HttpSession session) {
         String currentUser = (String) session.getAttribute("loggedInUser");
@@ -146,40 +145,7 @@ public class PostController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You must be logged in.");
         }
 
-        List<FriendRequest> sentF1 = friendRequestRepository.findByRequestingUserIdAndAcceptedTrue(currentUser);
-        List<FriendRequest> receivedF1 = friendRequestRepository.findByRequestRecipientIdAndAcceptedTrue(currentUser);
-        Set<String> directFriends = new HashSet<>();
-        sentF1.forEach(fr -> directFriends.add(fr.getRequestRecipientId()));
-        receivedF1.forEach(fr -> directFriends.add(fr.getRequestingUserId()));
-
-        Set<String> friendsOfFriends = new HashSet<>();
-        if (!directFriends.isEmpty()) {
-            for (String friend : directFriends) {
-
-                List<FriendRequest> f2SentByFriend = friendRequestRepository
-                        .findByRequestingUserIdAndAcceptedTrue(friend);
-
-                List<FriendRequest> f2ReceivedByFriend = friendRequestRepository
-                        .findByRequestRecipientIdAndAcceptedTrue(friend);
-
-                for (FriendRequest fr : f2SentByFriend) {
-                    String potentialFoF = fr.getRequestRecipientId();
-
-                    if (!potentialFoF.equals(currentUser) && !directFriends.contains(potentialFoF)) {
-                        friendsOfFriends.add(potentialFoF);
-                    }
-                }
-
-                for (FriendRequest fr : f2ReceivedByFriend) {
-                    String potentialFoF = fr.getRequestingUserId();
-
-                    if (!potentialFoF.equals(currentUser) && !directFriends.contains(potentialFoF)) {
-                        friendsOfFriends.add(potentialFoF);
-                    }
-                }
-
-            }
-        }
+        Set<String> friendsOfFriends = getFriendsOfFriends(currentUser);
 
         if (friendsOfFriends.isEmpty()) {
             return new ArrayList<>();
@@ -189,4 +155,57 @@ public class PostController {
             return postRepository.findByAuthorIdIn(fofList, sortByTimestampDesc);
         }
     }
+
+    @GetMapping("/fof/{userId}")
+    public List<User> getFriendsOfFriends(@PathVariable String userId, HttpSession session) {
+        String currentUser = (String) session.getAttribute("loggedInUser");
+        if (currentUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You must be logged in.");
+        }
+
+        Set<String> friendsOfFriends = getFriendsOfFriends(userId);
+
+        if (friendsOfFriends.isEmpty()) {
+            return new ArrayList<>();
+        } else {
+            List<User> fofList = new ArrayList<>();
+            for (String fofUsername : friendsOfFriends) {
+                User user = userRepository.findByUsername(fofUsername);
+                if (user != null) {
+                    fofList.add(user);
+                }
+            }
+            return fofList;
+        }
+    }
+
+    public Set<String> getFriendsOfFriends(String currentUser) {
+        Set<String> directFriends = getDirectFriends(currentUser);
+
+        Set<String> friendsOfFriends = new HashSet<>();
+        if (!directFriends.isEmpty()) {
+            for (String friend : directFriends) {
+
+                Set<String> friendsOfFriend = getDirectFriends(friend);
+                for (String fof : friendsOfFriend) {
+                    if (!fof.equals(currentUser) && !directFriends.contains(fof)) {
+                        friendsOfFriends.add(fof);
+                    }
+                }
+
+            }
+        }
+        return friendsOfFriends;
+    }
+
+    public Set<String> getDirectFriends(String username) {
+
+        List<FriendRequest> sentF1 = friendRequestRepository.findByRequestingUserIdAndAcceptedTrue(username);
+        List<FriendRequest> receivedF1 = friendRequestRepository.findByRequestRecipientIdAndAcceptedTrue(username);
+        Set<String> directFriends = new HashSet<>();
+        sentF1.forEach(fr -> directFriends.add(fr.getRequestRecipientId()));
+        receivedF1.forEach(fr -> directFriends.add(fr.getRequestingUserId()));
+        return directFriends;
+    }
+
 }
