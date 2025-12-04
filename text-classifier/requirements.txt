@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+transformers
+torch>=2.6
+numpy<2
+
