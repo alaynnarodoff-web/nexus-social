@@ -3,7 +3,7 @@ services:
     image: mongo:latest
     container_name: my-mongo-container
     ports:
-      - "27017:27017"
+      - "27018:27017"
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
@@ -34,3 +34,4 @@ services:
 
 volumes:
   mongo-data:
+    name: "nexus-mongo-data"
