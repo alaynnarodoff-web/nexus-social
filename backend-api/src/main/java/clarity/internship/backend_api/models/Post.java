@@ -1,5 +1,6 @@
 package clarity.internship.backend_api.models;
 
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties.Retry.Topic;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -19,6 +20,9 @@ public class Post {
     private String imageBase64;
     private List<String> likedBy = new ArrayList<>();
     private List<Comment> comments = new ArrayList<>();
+    private List<String> topics = new ArrayList<>();
+    private double sentimentScore;
+    private String sentimentLabel;
 
     public Post() {
         this.timestamp = Instant.now();
@@ -96,4 +100,27 @@ public class Post {
         this.comments = comments;
     }
 
+    public List<String> getTopics() {
+        return topics;
+    }
+
+    public void setTopics(List<String> topics) {
+        this.topics = topics;
+    }
+
+    public double getSentimentScore() {
+        return sentimentScore;
+    }
+
+    public void setSentimentScore(double sentimentScore) {
+        this.sentimentScore = sentimentScore;
+    }
+
+    public String getSentimentLabel() {
+        return sentimentLabel;
+    }
+
+    public void setSentimentLabel(String sentimentLabel) {
+        this.sentimentLabel = sentimentLabel;
+    }
 }
