@@ -1,7 +1,7 @@
 services:
   mongodb:
     image: mongo:latest
-    container_name: my-mongo-container
+    container_name: nexus-mongo
     ports:
       - "27018:27017"
     environment:
@@ -14,24 +14,64 @@ services:
     build:
       context: ./backend-api
       dockerfile: Dockerfile
-    container_name: my-spring-app
+    container_name: nexus-api
     ports:
       - "8080:8080"
     depends_on:
       - mongodb
     environment:
-      - SPRING_DATA_MONGODB_URI=mongodb://admin:password@mongodb:27017/myappdb?authSource=admin
+      - SPRING_DATA_MONGODB_URI=mongodb://admin:password@nexus-mongo:27017/nexusDb?authSource=admin
+      - SPRING_DATA_TEXT_CLASSIFIER_URI=http://nexus-text-classifier:8000/classify
 
   text-classifier:
     build:
       context: ./text-classifier
       dockerfile: Dockerfile
-    container_name: my-text-classifier
+    container_name: nexus-text-classifier
     ports:
       - "8000:8000"
     environment:
       PORT: 8000
 
+  ollama:
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama
+    container_name: ollama-phi3
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  chat-responder:
+    build:
+      context: ./chat-responder
+      dockerfile: Dockerfile
+    container_name: nexus-chat-responder
+    depends_on:
+      - mongodb
+      - ollama
+    environment:
+      - MONGO_URL=mongodb://admin:password@nexus-mongo:27017/nexusSocial?authSource=admin
+      - DATABASE_NAME=nexusSocial
+      - AI_API_URL=http://ollama:11434/api/chat
+      - AI_MODEL=phi3
+      - USE_LOCAL_ONLY=false
+      - POLL_INTERVAL_SECONDS=60
+      - LOOKBACK_SECONDS=60
+      - RESPONSE_RATE=0.74
+    restart: unless-stopped
+
 volumes:
   mongo-data:
     name: "nexus-mongo-data"
+  ollama-data:
+    name: "nexus-ollama-data"

@@ -11,6 +11,7 @@ import clarity.internship.backend_api.models.FriendRequest;
 import clarity.internship.backend_api.models.Post;
 import clarity.internship.backend_api.models.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.graphql.GraphQlProperties.Http;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
@@ -44,6 +45,9 @@ public class PostController {
 
     private static final Logger logger = LoggerFactory.getLogger(PostController.class);
 
+    @Value("${spring.data.text.classifier.uri}")
+    private String textClassifierUrl;
+
     @Autowired
     private PostRepository postRepository;
 
@@ -64,13 +68,13 @@ public class PostController {
         post.setContent(content);
         DataAnalyzer daAnalyzer = new DataAnalyzer(content);
         ObjectMapper mapper = new ObjectMapper();
-        logger.info("Sending to Data Analyzer:");
+        logger.info("Sending to Data Analyzer:" + textClassifierUrl);
         logger.info(mapper.writeValueAsString(daAnalyzer));
 
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(new java.net.URI("http://localhost:8000/classify"))
+                    .uri(new java.net.URI(textClassifierUrl))
                     .header("Content-Type", "application/json")
                     .version(HttpClient.Version.HTTP_1_1)
                     .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(daAnalyzer)))
