@@ -40,26 +40,30 @@
 import { ref } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
-import { useRouter } from 'vue-router' 
+import { useRouter } from 'vue-router'
+
 const username = ref<string>('')
 const password = ref<string>('')
 
 const userStore = useUserStore()
-const { error } = storeToRefs(userStore)
 
-const router = useRouter() 
+const { error, user } = storeToRefs(userStore)
+
+const router = useRouter()
 
 const login = async () => {
   try {
-    await userStore.login(username.value, password.value) 
-    
-    sessionStorage.setItem('loggedInUser', username.value)
-    console.log('login succeeded for', username.value)
+    await userStore.login(username.value, password.value)
 
-    router.push('/view-posts')
-
+    if (user.value) {
+      sessionStorage.setItem('loggedInUser', username.value)
+      console.log('login succeeded for', username.value)
+      router.push('/view-posts')
+    } else {
+      console.log('Login failed, user object is null. Error:', error.value)
+    }
   } catch (err) {
-    console.error('login error', err)
+    console.error('An unexpected error occurred during login:', err)
   }
 }
 </script>

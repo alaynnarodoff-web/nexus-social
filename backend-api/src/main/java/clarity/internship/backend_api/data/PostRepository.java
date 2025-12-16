@@ -9,4 +9,6 @@ public interface PostRepository extends MongoRepository<Post, String> {
     List<Post> findByAuthorId(String authorId);
 
     List<Post> findByAuthorIdIn(List<String> authorIds, Sort sort);
+
+    List<Post> findAllByOrderByTimestampDesc();
 }

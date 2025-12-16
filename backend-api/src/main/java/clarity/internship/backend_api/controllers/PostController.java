@@ -4,20 +4,37 @@ import clarity.internship.backend_api.data.PostRepository;
 import clarity.internship.backend_api.data.UserRepository;
 import clarity.internship.backend_api.data.FriendRequestRepository;
 import clarity.internship.backend_api.models.Comment;
+import clarity.internship.backend_api.models.DataAnalyzer;
+import clarity.internship.backend_api.models.DataAnalyzerResponse;
+import clarity.internship.backend_api.models.DataAnalyzerResponse.Sentiment;
 import clarity.internship.backend_api.models.FriendRequest;
 import clarity.internship.backend_api.models.Post;
 import clarity.internship.backend_api.models.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.graphql.GraphQlProperties.Http;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.io.IOException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -25,6 +42,11 @@ import java.util.Map;
 
 @RestController
 public class PostController {
+
+    private static final Logger logger = LoggerFactory.getLogger(PostController.class);
+
+    @Value("${spring.data.text.classifier.uri}")
+    private String textClassifierUrl;
 
     @Autowired
     private PostRepository postRepository;
@@ -44,6 +66,40 @@ public class PostController {
         Post post = new Post();
         post.setAuthorId(authorId);
         post.setContent(content);
+        DataAnalyzer daAnalyzer = new DataAnalyzer(content);
+        ObjectMapper mapper = new ObjectMapper();
+        logger.info("Sending to Data Analyzer:" + textClassifierUrl);
+        logger.info(mapper.writeValueAsString(daAnalyzer));
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(new java.net.URI(textClassifierUrl))
+                    .header("Content-Type", "application/json")
+                    .version(HttpClient.Version.HTTP_1_1)
+                    .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(daAnalyzer)))
+                    .build();
+            HttpResponse<String> daResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (daResponse != null) {
+                String daAnalyzerResponse = daResponse.body();
+                ObjectMapper daMapper = new ObjectMapper();
+                DataAnalyzerResponse sentiment = daMapper.readValue(daAnalyzerResponse, DataAnalyzerResponse.class);
+
+                post.setSentimentLabel(sentiment.getSentiment().getLabel());
+                post.setSentimentScore(sentiment.getSentiment().getScore());
+                post.setTopics(sentiment.getClassification().stream()
+                        .filter(c -> c.getScore() >= 0.3)
+                        .map(c -> ((DataAnalyzerResponse.Classification) c).getCategory()).toList());
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error during sentiment analysis: " + e.getMessage());
+
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Post creation failed: Sentiment analysis service is currently unavailable.");
+        }
 
         User user = userRepository.findByUsername(authorId);
         if (user != null && user.getAvatar() != null && !user.getAvatar().isEmpty()) {
@@ -79,10 +135,8 @@ public class PostController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
 
         if (post.getLikedBy().contains(username)) {
-
             post.getLikedBy().remove(username);
         } else {
-
             post.getLikedBy().add(username);
         }
 
@@ -137,8 +191,6 @@ public class PostController {
         return postRepository.findByAuthorIdIn(friendUsernames, sortByTimestampDesc);
     }
 
-    // In PostController.java
-
     @GetMapping("/posts/fof")
     public List<Post> getFriendsOfFriendsPosts(HttpSession session) {
         String currentUser = (String) session.getAttribute("loggedInUser");
@@ -146,40 +198,7 @@ public class PostController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You must be logged in.");
         }
 
-        List<FriendRequest> sentF1 = friendRequestRepository.findByRequestingUserIdAndAcceptedTrue(currentUser);
-        List<FriendRequest> receivedF1 = friendRequestRepository.findByRequestRecipientIdAndAcceptedTrue(currentUser);
-        Set<String> directFriends = new HashSet<>();
-        sentF1.forEach(fr -> directFriends.add(fr.getRequestRecipientId()));
-        receivedF1.forEach(fr -> directFriends.add(fr.getRequestingUserId()));
-
-        Set<String> friendsOfFriends = new HashSet<>();
-        if (!directFriends.isEmpty()) {
-            for (String friend : directFriends) {
-
-                List<FriendRequest> f2SentByFriend = friendRequestRepository
-                        .findByRequestingUserIdAndAcceptedTrue(friend);
-
-                List<FriendRequest> f2ReceivedByFriend = friendRequestRepository
-                        .findByRequestRecipientIdAndAcceptedTrue(friend);
-
-                for (FriendRequest fr : f2SentByFriend) {
-                    String potentialFoF = fr.getRequestRecipientId();
-
-                    if (!potentialFoF.equals(currentUser) && !directFriends.contains(potentialFoF)) {
-                        friendsOfFriends.add(potentialFoF);
-                    }
-                }
-
-                for (FriendRequest fr : f2ReceivedByFriend) {
-                    String potentialFoF = fr.getRequestingUserId();
-
-                    if (!potentialFoF.equals(currentUser) && !directFriends.contains(potentialFoF)) {
-                        friendsOfFriends.add(potentialFoF);
-                    }
-                }
-
-            }
-        }
+        Set<String> friendsOfFriends = getFriendsOfFriends(currentUser);
 
         if (friendsOfFriends.isEmpty()) {
             return new ArrayList<>();
@@ -189,4 +208,57 @@ public class PostController {
             return postRepository.findByAuthorIdIn(fofList, sortByTimestampDesc);
         }
     }
+
+    @GetMapping("/fof/{userId}")
+    public List<User> getFriendsOfFriends(@PathVariable String userId, HttpSession session) {
+        String currentUser = (String) session.getAttribute("loggedInUser");
+        if (currentUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You must be logged in.");
+        }
+
+        Set<String> friendsOfFriends = getFriendsOfFriends(userId);
+
+        if (friendsOfFriends.isEmpty()) {
+            return new ArrayList<>();
+        } else {
+            List<User> fofList = new ArrayList<>();
+            for (String fofUsername : friendsOfFriends) {
+                User user = userRepository.findByUsername(fofUsername);
+                if (user != null) {
+                    fofList.add(user);
+                }
+            }
+            return fofList;
+        }
+    }
+
+    public Set<String> getFriendsOfFriends(String currentUser) {
+        Set<String> directFriends = getDirectFriends(currentUser);
+
+        Set<String> friendsOfFriends = new HashSet<>();
+        if (!directFriends.isEmpty()) {
+            for (String friend : directFriends) {
+
+                Set<String> friendsOfFriend = getDirectFriends(friend);
+                for (String fof : friendsOfFriend) {
+                    if (!fof.equals(currentUser) && !directFriends.contains(fof)) {
+                        friendsOfFriends.add(fof);
+                    }
+                }
+
+            }
+        }
+        return friendsOfFriends;
+    }
+
+    public Set<String> getDirectFriends(String username) {
+
+        List<FriendRequest> sentF1 = friendRequestRepository.findByRequestingUserIdAndAcceptedTrue(username);
+        List<FriendRequest> receivedF1 = friendRequestRepository.findByRequestRecipientIdAndAcceptedTrue(username);
+        Set<String> directFriends = new HashSet<>();
+        sentF1.forEach(fr -> directFriends.add(fr.getRequestRecipientId()));
+        receivedF1.forEach(fr -> directFriends.add(fr.getRequestingUserId()));
+        return directFriends;
+    }
+
 }

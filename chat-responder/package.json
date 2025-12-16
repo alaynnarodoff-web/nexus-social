@@ -1,0 +1,30 @@
+{
+  "name": "nexus-chat-responder",
+  "version": "1.0.0",
+  "description": "AI chat responder for Nexus Social platform",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "social",
+    "ai",
+    "chatbot",
+    "mongodb",
+    "llama"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mongodb": "^6.0.0",
+    "dotenv": "^16.0.0",
+    "node-cron": "^3.0.3",
+    "axios": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

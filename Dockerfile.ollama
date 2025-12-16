@@ -1,0 +1,18 @@
+# --- Stage 1: Download the Model ---
+FROM ollama/ollama:latest AS downloader
+
+# Start the Ollama server and keep it running in the background during this stage
+RUN (ollama serve &) && \
+    # Wait for the server to be ready
+    sleep 5 && \
+    # Pull the desired lightweight model
+    ollama pull phi3 && \
+    # Ensure all downloads are flushed and processes killed
+    kill $(jobs -p) || true
+
+
+# --- Stage 2: Final Image Configuration ---
+FROM ollama/ollama:latest AS final
+
+# Copy the entire ollama directory structure from the downloader stage
+COPY --from=downloader /root/.ollama /root/.ollama
