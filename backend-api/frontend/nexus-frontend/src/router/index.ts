@@ -57,6 +57,17 @@ const router = createRouter({
       name: 'CreateUser',
       component: () => import('../views/CreateUserView.vue')
     },
+    {
+      path: '/topics',
+      name: 'topics',
+      component: () => import('../views/TopicsView.vue')
+    },
+    {
+      path: '/topics/:topic',
+      name: 'TopicPosts',
+      component: () => import('../views/TopicPostsView.vue'),
+      props: true
+    }
   ],
 })
 

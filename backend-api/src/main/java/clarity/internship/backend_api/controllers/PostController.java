@@ -6,24 +6,31 @@ import clarity.internship.backend_api.data.FriendRequestRepository;
 import clarity.internship.backend_api.models.Comment;
 import clarity.internship.backend_api.models.DataAnalyzer;
 import clarity.internship.backend_api.models.DataAnalyzerResponse;
-import clarity.internship.backend_api.models.DataAnalyzerResponse.Sentiment;
+// import clarity.internship.backend_api.models.DataAnalyzerResponse.Sentiment;
 import clarity.internship.backend_api.models.FriendRequest;
 import clarity.internship.backend_api.models.Post;
+import clarity.internship.backend_api.models.TopicCount;
 import clarity.internship.backend_api.models.User;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.graphql.GraphQlProperties.Http;
+// import org.springframework.boot.autoconfigure.graphql.GraphQlProperties.Http;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestClient;
+// import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+// import org.springframework.data.mongodb.core.query.Criteria;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+// import org.springframework.http.MediaType;
+// import org.springframework.http.ResponseEntity;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:5173")
 public class PostController {
 
     private static final Logger logger = LoggerFactory.getLogger(PostController.class);
@@ -52,6 +60,9 @@ public class PostController {
 
     @Autowired
     private FriendRequestRepository friendRequestRepository;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     @PostMapping("/posts")
     public Post createPost(
@@ -255,6 +266,26 @@ public class PostController {
         sentF1.forEach(fr -> directFriends.add(fr.getRequestRecipientId()));
         receivedF1.forEach(fr -> directFriends.add(fr.getRequestingUserId()));
         return directFriends;
+    }
+
+    @GetMapping("/topics")
+    public List<TopicCount> getTopicAnalytics() {
+        Aggregation aggregation = newAggregation(
+                unwind("topics"),
+                group("topics").count().as("count"),
+                sort(Sort.Direction.DESC, "count"),
+                project("count").and("_id").as("topic"));
+
+        AggregationResults<TopicCount> results = mongoTemplate.aggregate(
+                aggregation, "posts", TopicCount.class);
+
+        return results.getMappedResults();
+    }
+
+    @GetMapping("/posts/topic/{topicName}")
+    public List<Post> getPostsByTopic(@PathVariable String topicName) {
+        Sort sortByTimestampDesc = Sort.by(Sort.Direction.DESC, "timestamp");
+        return postRepository.findByTopics(topicName, sortByTimestampDesc);
     }
 
 }

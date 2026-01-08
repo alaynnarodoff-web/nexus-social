@@ -27,6 +27,9 @@ onMounted(async () => {
   if (!user.value) await userStore.fetchUser()
 })
 
+function goToProfile(username: string) {
+  if (username) router.push(`/profile/${username}`)
+}
 
 function toggleLike(post: any) {
   postsStore.toggleLike(post.id)
@@ -39,12 +42,9 @@ function toggleCommentSection(post: any) {
 async function postComment(postId: string) {
   const text = commentInputs.value[postId]
   if (!text || !text.trim()) return
-
   await postsStore.addComment(postId, text)
-  
   commentInputs.value[postId] = ''
 }
-
 
 watch(activeFeed, (newFeed) => {
   if (newFeed === 'everyone') postsStore.getNewsFeed()
@@ -125,14 +125,14 @@ watch(selectedUser, (selectedUsername) => {
           <v-btn value="fof" class="flex-grow-1">Friends of Friends</v-btn>
         </v-btn-toggle>
       </div>
+
       <div>
         <v-row>
           <v-col class="text-left text-h5 font-weight-bold mb-2" style="color: orangered;">
-          People you may know:
+            People you may know:
           </v-col>
-          </v-row>
-          <FriendRecsView />
-        
+        </v-row>
+        <FriendRecsView />
       </div>
 
       <div class="feed-content">
@@ -153,7 +153,11 @@ watch(selectedUser, (selectedUsername) => {
           >
             <v-list-item class="py-3">
               <template v-slot:prepend>
-                <v-avatar size="52" class="mr-3" style="border: 1px solid orangered">
+                <v-avatar 
+                  size="52" 
+                  class="mr-3 hover-avatar"
+                  @click="goToProfile(post.authorId)"
+                >
                   <v-img
                     v-if="post.authorAvatar"
                     :src="post.authorAvatar"
@@ -162,7 +166,12 @@ watch(selectedUser, (selectedUsername) => {
                   <span v-else class="text-h6">{{ post.authorId?.charAt(0).toUpperCase() }}</span>
                 </v-avatar>
               </template>
-              <v-list-item-title class="font-weight-bold">{{ post.authorId }}</v-list-item-title>
+              <v-list-item-title 
+                class="font-weight-bold author-link" 
+                @click="goToProfile(post.authorId)"
+              >
+                {{ post.authorId }}
+              </v-list-item-title>
               <v-list-item-subtitle>{{ new Date(post.timestamp).toLocaleString() }}</v-list-item-subtitle>
             </v-list-item>
 
@@ -206,14 +215,22 @@ watch(selectedUser, (selectedUsername) => {
             </v-card-actions>
 
             <div v-if="post.showComments" class="bg-grey-lighten-5 pa-3" style="border-top: 1px solid #eee">
-                
                 <div v-if="post.comments && post.comments.length > 0" class="mb-3">
                     <div v-for="(comment, index) in post.comments" :key="index" class="d-flex align-start mb-3 text-left">
-                        <v-avatar size="32" class="mr-2 mt-1" style="border: 1px solid #ccc">
+                        <v-avatar 
+                          size="32" 
+                          class="mr-2 mt-1 hover-avatar" 
+                          @click="goToProfile(comment.author)"
+                        >
                             <v-img :src="comment.authorAvatar || 'defaultAvatar.jpg'"></v-img>
                         </v-avatar>
                         <div class="bg-white pa-2 rounded elevation-1 flex-grow-1">
-                            <div class="text-subtitle-2 font-weight-bold">{{ comment.author }}</div>
+                            <div 
+                              class="text-subtitle-2 font-weight-bold author-link" 
+                              @click="goToProfile(comment.author)"
+                            >
+                              {{ comment.author }}
+                            </div>
                             <div class="text-body-2">{{ comment.text }}</div>
                             <div class="text-caption text-grey mt-1">{{ new Date(comment.timestamp).toLocaleString() }}</div>
                         </div>
@@ -264,5 +281,26 @@ watch(selectedUser, (selectedUsername) => {
   margin: 0;
   padding: 0;
   text-align: center; 
+}
+
+.hover-avatar {
+  border: 1px solid orangered;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-avatar:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 10px rgba(255, 69, 0, 0.3);
+}
+
+.author-link {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.author-link:hover {
+  color: orangered;
+  text-decoration: underline;
 }
 </style>

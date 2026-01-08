@@ -165,6 +165,27 @@ export const usePostsStore = defineStore('posts', {
             } catch (err) {
                 console.error("Comment failed:", err)
             }
+        },
+
+        // --- MOVED INSIDE THE ACTIONS BLOCK ---
+        async fetchPostsByTopic(topic: string) {
+            this.loading = true;
+            this.posts = []
+            try {
+                const res = await fetch(`/api/posts/topic/${topic}`, { credentials: 'include' })
+
+                if (!res.ok) throw new Error('Failed to load topic posts')
+
+                const data = await res.json()
+                this.posts = data.map((p: any) => ({ ...p, showComments: false }))
+            } catch (err: any) {
+                this.error = err.message
+                console.error(err)
+            } finally {
+                this.loading = false
+            }
         }
-    },
+        // --- END OF MOVED FUNCTION ---
+
+    }, // <--- ACTIONS CLOSING BRACE IS HERE NOW
 })

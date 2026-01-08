@@ -40,6 +40,11 @@ function handleLogout() {
         <span>Create</span>
       </v-btn>
 
+      <v-btn to ="/topics">
+        <v-icon>mdi-chart-word</v-icon>
+        <span>Topics</span>
+      </v-btn>
+
       <v-btn to="/account">
         <v-icon>mdi-account</v-icon>
         <span>Account</span>

@@ -35,11 +35,16 @@
           </v-chip>
         </div>
 
-        <v-card variant="tonal" class="pa-4 mb-6 text-left bg-grey-lighten-4 border-none">
+        <v-card variant="tonal" class="pa-4 mb-4 text-left bg-grey-lighten-4 border-none">
           <div class="text-caption font-weight-bold text-grey-darken-1 mb-1">About</div>
           <div class="text-body-1 text-grey-darken-3">
             {{ profileUser.bio || 'This user has not written a bio yet.' }}
           </div>
+        </v-card>
+
+        <v-card variant="tonal" class="pa-4 mb-6 text-left bg-grey-lighten-4 border-none">
+          <div class="text-caption font-weight-bold text-grey-darken-1 mb-1">Topics of Interest</div>
+          <UserInterestCloud :username="profileUser.username" />
         </v-card>
 
         <div class="d-flex justify-center gap-2 mb-8">
@@ -86,7 +91,12 @@
           >
             <v-list-item class="py-3">
               <template v-slot:prepend>
-                <v-avatar size="52" class="mr-3">
+                <v-avatar 
+                  size="52" 
+                  class="mr-3"
+                  :style="post.authorId !== props.username ? 'cursor: pointer' : ''"
+                  @click="goToProfile(post.authorId)"
+                >
                   <v-img
                     v-if="post.authorAvatar"
                     :src="post.authorAvatar"
@@ -99,16 +109,16 @@
                 </v-avatar>
               </template>
 
-              <v-list-item-title class="font-weight-bold">
+              <v-list-item-title 
+                class="font-weight-bold"
+                :style="post.authorId !== props.username ? 'cursor: pointer' : ''"
+                @click="goToProfile(post.authorId)"
+              >
                 {{ post.authorId || 'Anonymous' }}
               </v-list-item-title>
               <v-list-item-subtitle>
                 {{ new Date(post.timestamp).toLocaleString() }}
               </v-list-item-subtitle>
-
-              <template v-slot:append>
-                <v-btn icon="mdi-dots-vertical" variant="text" size="small" />
-              </template>
             </v-list-item>
 
             <v-divider />
@@ -155,11 +165,22 @@
              <div v-if="post.showComments" class="bg-grey-lighten-5 pa-3" style="border-top: 1px solid #eee">
                 <div v-if="post.comments && post.comments.length > 0" class="mb-3">
                     <div v-for="(comment, index) in post.comments" :key="index" class="d-flex align-start mb-3 text-left">
-                        <v-avatar size="32" class="mr-2 mt-1" style="border: 1px solid #ccc">
+                        <v-avatar 
+                          size="32" 
+                          class="mr-2 mt-1" 
+                          style="border: 1px solid #ccc; cursor: pointer;"
+                          @click="goToProfile(comment.author)"
+                        >
                             <v-img :src="comment.authorAvatar || 'defaultAvatar.jpg'"></v-img>
                         </v-avatar>
                         <div class="bg-white pa-2 rounded elevation-1 flex-grow-1">
-                            <div class="text-subtitle-2 font-weight-bold">{{ comment.author }}</div>
+                            <div 
+                              class="text-subtitle-2 font-weight-bold" 
+                              style="cursor: pointer;"
+                              @click="goToProfile(comment.author)"
+                            >
+                              {{ comment.author }}
+                            </div>
                             <div class="text-body-2">{{ comment.text }}</div>
                             <div class="text-caption text-grey mt-1">{{ new Date(comment.timestamp).toLocaleString() }}</div>
                         </div>
@@ -201,9 +222,11 @@ import { useUserStore, type UserProfile } from '@/stores/user'
 import { usePostsStore } from '@/stores/posts'
 import { storeToRefs } from 'pinia'
 import { ref, onMounted, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import UserInterestCloud from '@/components/UserInterestCloud.vue'
 
 const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
 const postStore = usePostsStore()
 
@@ -223,6 +246,12 @@ const props = defineProps<{
 const isCurrentUser = computed(() => {
   return loggedInUser.value?.username === props.username
 })
+
+function goToProfile(targetUsername: string) {
+  if (targetUsername && targetUsername !== props.username) {
+    router.push(`/profile/${targetUsername}`)
+  }
+}
 
 function toggleLike(post: any) {
   postStore.toggleLike(post.id)
