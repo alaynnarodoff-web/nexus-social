@@ -1,59 +1,66 @@
 <template>
   <div class="center-container">
     <v-container class="d-flex flex-column align-center text-center" style="max-width: 400px;">
-      
       <img src="@/assets/thumbnail_IMG_2719.png" alt="Logo" class="logo-img mb-4" />
-      
       <h2 class="text-h5 font-weight-bold mb-4">Create Account</h2>
 
       <div class="w-100">
-        <v-text-field v-model="username" label="Username" variant="underlined" density="compact"></v-text-field>
-        <v-text-field v-model="password" label="Password" type="password" variant="underlined" density="compact"></v-text-field>
-        <v-text-field v-model="email" label="Email" type="email" variant="underlined" density="compact"></v-text-field>
-        <v-text-field v-model="firstName" label="First Name" variant="underlined" density="compact"></v-text-field>
-        <v-text-field v-model="lastName" label="Last Name" variant="underlined" density="compact"></v-text-field>
+        <v-text-field v-model="username" label="Username" variant="underlined" color="orangered"></v-text-field>
+        <v-text-field v-model="password" label="Password" type="password" variant="underlined" color="orangered"></v-text-field>
+        <v-text-field v-model="email" label="Email" type="email" variant="underlined" color="orangered"></v-text-field>
+        <v-text-field v-model="phoneNumber" label="Phone Number" variant="underlined" color="orangered"></v-text-field>
+        <v-text-field v-model="firstName" label="First Name" variant="underlined" color="orangered"></v-text-field>
+        <v-text-field v-model="lastName" label="Last Name" variant="underlined" color="orangered"></v-text-field>
+        <v-textarea
+          v-model="bio"
+          label="Add a Bio!"
+          variant="outlined"
+          rows="3"
+          class="mt-2"
+          color="orangered"
+        ></v-textarea>
 
-        <div class="d-flex flex-column align-center my-3">
-            <v-avatar size="80" class="mb-2" style="border: 1px solid #ccc;">
-                <v-img :src="avatarBase64 || ''" alt="Avatar Preview">
+        <div class="d-flex flex-column align-center my-6">
+            <v-avatar size="100" class="mb-3 elevation-2" style="border: 2px solid orangered;">
+                <v-img :src="avatarBase64 || ''" cover>
                     <template v-slot:placeholder>
-                        <div class="d-flex align-center justify-center fill-height text-grey text-caption">
-                            No Image
+                        <div class="d-flex align-center justify-center fill-height bg-grey-lighten-4">
+                            <v-icon color="grey-lighten-1" size="40">mdi-account</v-icon>
                         </div>
                     </template>
                 </v-img>
             </v-avatar>
+            
             <v-file-input
                 v-model="avatarFile"
-                label="Upload Avatar"
+                label="Choose Avatar"
                 accept="image/*"
                 variant="outlined"
                 density="compact"
                 prepend-icon="mdi-camera"
                 hide-details
+                color="orangered"
+                style="width: 250px"
                 @update:model-value="handleAvatarChange"
             ></v-file-input>
         </div>
       </div>
 
-      <v-alert v-if="error" type="error" variant="tonal" class="mb-4 w-100">
-        {{ error }}
-      </v-alert>
-
       <v-btn 
         color="orangered" 
         block 
-        class="mb-3 text-white" 
+        variant="flat"
+        class="mb-3 text-white font-weight-bold" 
+        size="large"
         :loading="loading"
         @click="createUser"
       >
         Create Account
       </v-btn>
 
-      <router-link to="/login" class="action-link" style="color: orangered;">
+      <router-link to="/login" class="text-decoration-none font-weight-bold" style="color: orangered;">
         Back to Login
       </router-link>
-
     </v-container>
   </div>
 </template>
@@ -69,6 +76,8 @@ const password = ref('')
 const email = ref('')
 const firstName = ref('')
 const lastName = ref('')
+const phoneNumber = ref('') 
+const bio = ref('')
 
 const avatarFile = ref<File[] | undefined>()
 const avatarBase64 = ref<string>('')
@@ -106,6 +115,8 @@ async function createUser() {
                 email: email.value,
                 firstName: firstName.value,
                 lastName: lastName.value,
+                phoneNumber: phoneNumber.value,
+                bio: bio.value,
                 avatar: avatarBase64.value 
             })
         })

@@ -82,26 +82,26 @@ export const useUserStore = defineStore('user', {
             }
         },
 
-        async fetchFriendCount() {
+        async fetchFriendCount(username?: string) {
             try {
-                const res = await fetch('/api/friends/count');
+                const url = username
+                    ? `/api/friends/count?username=${encodeURIComponent(username)}`
+                    : '/api/friends/count';
 
-                if (res.status === 401) {
-
-                    this.friendCount = 0;
-                    return;
-                }
-
-                if (!res.ok) {
-                    throw new Error(`Failed to get friend count: ${res.statusText}`);
-                }
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Failed to get count');
 
                 const count = await res.text();
-                this.friendCount = parseInt(count, 10) || 0;
+                const numericCount = parseInt(count, 10) || 0;
 
+                if (!username || username === this.user?.username) {
+                    this.friendCount = numericCount;
+                }
+
+                return numericCount;
             } catch (err) {
-                console.error('Could not load friend count:', err);
-                this.friendCount = 0;
+                console.error(err);
+                return 0;
             }
         },
 
@@ -125,10 +125,32 @@ export const useUserStore = defineStore('user', {
             await this.fetchUser()
         },
 
-        logout() {
-            this.user = null
-            this.friendCount = 0
-            sessionStorage.removeItem('loggedInUser')
+        async getFriendCountForUser(username: string): Promise<number> {
+            try {
+                const res = await fetch(`/api/friends/count?username=${username}`);
+                if (!res.ok) return 0;
+                const count = await res.text();
+                return parseInt(count, 10) || 0;
+            } catch {
+                return 0;
+            }
+        },
+
+        async logout() {
+            try {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } catch (err) {
+                console.error("Server-side logout failed:", err);
+            } finally {
+                this.user = null;
+                this.friendCount = 0;
+                this.fof = [];
+                sessionStorage.removeItem('loggedInUser');
+                router.replace('/login');
+            }
         },
         async fetchFof(username?: string) {
             this.error = null

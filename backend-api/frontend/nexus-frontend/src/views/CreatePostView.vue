@@ -1,51 +1,56 @@
 <template>
   <div class="center-container">
     <v-container class="d-flex flex-column align-center text-center" style="max-width: 500px;">
-      
       <img src="@/assets/thumbnail_IMG_2719.png" alt="Logo" class="logo-img mb-4" />
-      
       <h2 class="text-h5 font-weight-bold mb-4">Create a New Post</h2>
 
       <div class="w-100 text-left">
         <v-textarea
           v-model="postContent"
-          label="Post Content"
+          label="What's on your mind?"
           variant="outlined"
           rows="4"
-          placeholder="What's on your mind?"
           color="orangered"
+          class="mb-2"
         ></v-textarea>
 
         <v-file-input
           v-model="imageFile"
-          label="Image File"
+          label="Add a Photo"
           accept="image/*"
           variant="outlined"
           prepend-icon="mdi-camera"
           color="orangered"
+          density="compact"
+          hide-details
+          class="mb-4"
           @update:model-value="handleFileChange"
         ></v-file-input>
 
-        <div v-if="previewUrl" class="mb-4 text-center">
-            <img :src="previewUrl" alt="Preview" style="max-width: 200px; border-radius: 8px; border: 1px solid #ccc;" />
+        <div v-if="previewUrl" class="mb-4 d-flex flex-column align-center">
+            <p class="text-caption text-grey mb-1">Image Preview</p>
+            <v-img 
+              :src="previewUrl" 
+              width="200" 
+              class="rounded-lg border shadow-sm"
+              cover
+            />
         </div>
       </div>
 
-      <v-alert v-if="error" type="error" variant="tonal" class="mb-4 w-100">
-        {{ error }}
-      </v-alert>
+      <v-alert v-if="error" type="error" variant="tonal" class="mb-4 w-100">{{ error }}</v-alert>
 
       <v-btn 
         color="orangered" 
         block 
-        class="mb-3 text-white" 
+        variant="flat"
+        class="text-white font-weight-bold" 
         size="large"
         :loading="loading"
         @click="createPost"
       >
         Create Post
       </v-btn>
-
     </v-container>
   </div>
 </template>

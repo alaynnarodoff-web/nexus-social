@@ -6,7 +6,7 @@
 
     <v-container v-else-if="error" class="text-center">
       <h3 class="text-red">{{ error }}</h3>
-      <v-btn to="/" variant="text" color="orangered">Go Home</v-btn>
+      <v-btn to="/view-posts" variant="text" color="orangered">Go Home</v-btn>
     </v-container>
 
     <v-container v-else-if="profileUser" class="d-flex flex-column align-center text-center">
@@ -48,24 +48,35 @@
         </v-card>
 
         <div class="d-flex justify-center gap-2 mb-8">
-           <router-link 
-             v-if="isCurrentUser" 
-             to="/account" 
-             class="v-btn v-btn--elevated bg-orangered text-white px-6"
-             style="text-decoration: none; height: 36px; line-height: 36px; border-radius: 4px;"
+            <router-link 
+              v-if="isCurrentUser" 
+              to="/account" 
+              class="v-btn v-btn--elevated bg-orangered text-white px-6"
+              style="text-decoration: none; height: 36px; line-height: 36px; border-radius: 4px;"
             >
-             Edit Profile
-           </router-link>
+              Edit Profile
+            </router-link>
 
-           <v-btn 
-             v-else 
-             variant="flat" 
-             color="orangered" 
-             prepend-icon="mdi-account-plus"
-             @click="sendFriendRequest"
-           >
-             Add Friend
-           </v-btn>
+            <div v-else>
+              <v-chip v-if="friendshipStatus === 'friends'" color="success" prepend-icon="mdi-account-check" variant="flat">
+                Already Friends
+              </v-chip>
+
+              <v-chip v-else-if="friendshipStatus === 'pending'" color="orange" variant="outlined" prepend-icon="mdi-clock-outline">
+                Request Pending
+              </v-chip>
+
+              <v-btn 
+                v-else 
+                variant="flat" 
+                color="orangered" 
+                prepend-icon="mdi-account-plus"
+                :loading="requesting"
+                @click="sendFriendRequest"
+              >
+                Add Friend
+              </v-btn>
+            </div>
         </div>
 
         <v-divider class="mb-6"></v-divider>
@@ -91,127 +102,17 @@
           >
             <v-list-item class="py-3">
               <template v-slot:prepend>
-                <v-avatar 
-                  size="52" 
-                  class="mr-3"
-                  :style="post.authorId !== props.username ? 'cursor: pointer' : ''"
-                  @click="goToProfile(post.authorId)"
-                >
-                  <v-img
-                    v-if="post.authorAvatar"
-                    :src="post.authorAvatar"
-                    alt="Author avatar"
-                    cover
-                  />
-                  <span v-else class="text-h6">
-                    {{ post.authorId?.charAt(0).toUpperCase() }}
-                  </span>
+                <v-avatar size="52" class="mr-3">
+                  <v-img :src="post.authorAvatar || 'defaultAvatar.jpg'" cover />
                 </v-avatar>
               </template>
-
-              <v-list-item-title 
-                class="font-weight-bold"
-                :style="post.authorId !== props.username ? 'cursor: pointer' : ''"
-                @click="goToProfile(post.authorId)"
-              >
-                {{ post.authorId || 'Anonymous' }}
-              </v-list-item-title>
-              <v-list-item-subtitle>
-                {{ new Date(post.timestamp).toLocaleString() }}
-              </v-list-item-subtitle>
+              <v-list-item-title class="font-weight-bold">{{ post.authorId }}</v-list-item-title>
+              <v-list-item-subtitle>{{ new Date(post.timestamp).toLocaleString() }}</v-list-item-subtitle>
             </v-list-item>
-
             <v-divider />
-
-            <v-card-text class="text-body-1 py-4" style="color: black">
-              {{ post.content }}
-            </v-card-text>
-
-            <v-img
-               v-if="post.imageUrl || post.imageBase64"
-               :src="post.imageUrl || `data:image/jpeg;base64,${post.imageBase64}`"
-               max-height="300"
-               cover
-               class="bg-grey-lighten-2"
-             ></v-img>
-
-            <v-divider />
-
-            <v-card-actions>
-              <v-btn 
-                variant="text" 
-                color="orangered"
-                @click="toggleLike(post)"
-              >
-                <template v-slot:prepend>
-                    <v-icon 
-                      :icon="post.likedBy?.includes(loggedInUser?.username || '') ? 'mdi-heart' : 'mdi-heart-outline'"
-                    ></v-icon>
-                </template>
-                {{ post.likedBy?.length || 0 }} Likes
-              </v-btn>
-              
-              <v-btn 
-                variant="text" 
-                prepend-icon="mdi-comment-text-outline" 
-                color="orangered"
-                @click="toggleCommentSection(post)"
-              >
-                {{ post.comments?.length || 0 }} Comments
-              </v-btn>
-              <v-spacer />
-            </v-card-actions>
-
-             <div v-if="post.showComments" class="bg-grey-lighten-5 pa-3" style="border-top: 1px solid #eee">
-                <div v-if="post.comments && post.comments.length > 0" class="mb-3">
-                    <div v-for="(comment, index) in post.comments" :key="index" class="d-flex align-start mb-3 text-left">
-                        <v-avatar 
-                          size="32" 
-                          class="mr-2 mt-1" 
-                          style="border: 1px solid #ccc; cursor: pointer;"
-                          @click="goToProfile(comment.author)"
-                        >
-                            <v-img :src="comment.authorAvatar || 'defaultAvatar.jpg'"></v-img>
-                        </v-avatar>
-                        <div class="bg-white pa-2 rounded elevation-1 flex-grow-1">
-                            <div 
-                              class="text-subtitle-2 font-weight-bold" 
-                              style="cursor: pointer;"
-                              @click="goToProfile(comment.author)"
-                            >
-                              {{ comment.author }}
-                            </div>
-                            <div class="text-body-2">{{ comment.text }}</div>
-                            <div class="text-caption text-grey mt-1">{{ new Date(comment.timestamp).toLocaleString() }}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="d-flex align-center">
-                    <v-text-field
-                        v-model="commentInputs[post.id]"
-                        placeholder="Write a comment..."
-                        variant="outlined"
-                        density="compact"
-                        hide-details
-                        bg-color="white"
-                        class="mr-2"
-                        @keyup.enter="postComment(post.id)"
-                    ></v-text-field>
-                    <v-btn 
-                        color="orangered" 
-                        size="small" 
-                        @click="postComment(post.id)"
-                        :disabled="!commentInputs[post.id]"
-                    >
-                        Post
-                    </v-btn>
-                </div>
-            </div>
-
+            <v-card-text class="text-body-1 py-4" style="color: black">{{ post.content }}</v-card-text>
           </v-card>
         </div>
-
       </div>
     </v-container>
   </div>
@@ -234,10 +135,11 @@ const { user: loggedInUser } = storeToRefs(userStore)
 const { posts } = storeToRefs(postStore)
 
 const profileUser = ref<(UserProfile & { friendCount?: number }) | null>(null)
+const friendshipStatus = ref<'none' | 'friends' | 'pending'>('none')
 const loadingProfile = ref<boolean>(true)
 const loadingPosts = ref<boolean>(false)
+const requesting = ref<boolean>(false)
 const error = ref<string | null>(null)
-const commentInputs = ref<Record<string, string>>({})
 
 const props = defineProps<{
   username: string
@@ -247,25 +149,41 @@ const isCurrentUser = computed(() => {
   return loggedInUser.value?.username === props.username
 })
 
-function goToProfile(targetUsername: string) {
-  if (targetUsername && targetUsername !== props.username) {
-    router.push(`/profile/${targetUsername}`)
+
+async function checkFriendshipStatus() {
+  if (isCurrentUser.value || !loggedInUser.value) return;
+  try {
+    const res = await fetch(`/api/friends/areFriends?user1=${loggedInUser.value.username}&user2=${props.username}`, {
+      credentials: 'include'
+    });
+    const areFriends = await res.json();
+    friendshipStatus.value = areFriends ? 'friends' : 'none';
+    
+  } catch (err) {
+    console.error("Failed to check friendship status", err);
   }
 }
 
-function toggleLike(post: any) {
-  postStore.toggleLike(post.id)
-}
+async function sendFriendRequest() {
+    requesting.value = true;
+    try {
+        const res = await fetch(`/api/friends/request?toUser=${props.username}`, {
+            method: 'POST',
+            credentials: 'include'
+        });
 
-function toggleCommentSection(post: any) {
-  post.showComments = !post.showComments
-}
-
-async function postComment(postId: string) {
-  const text = commentInputs.value[postId]
-  if (!text || !text.trim()) return
-  await postStore.addComment(postId, text)
-  commentInputs.value[postId] = ''
+        if (res.ok) {
+            alert(`Friend request sent to ${props.username}!`);
+            friendshipStatus.value = 'pending';
+        } else {
+            const msg = await res.text();
+            alert(msg || "Failed to send request.");
+        }
+    } catch (err) {
+        alert("An error occurred while sending the request.");
+    } finally {
+        requesting.value = false;
+    }
 }
 
 const loadData = async (usernameToFetch: string) => {
@@ -279,15 +197,24 @@ const loadData = async (usernameToFetch: string) => {
         await userStore.fetchUser()
     }
 
-    if (loggedInUser.value?.username === usernameToFetch) {
-        profileUser.value = { ...loggedInUser.value!, friendCount: userStore.friendCount }
+    let userData: any;
+    let count: number = 0;
+
+    if (isCurrentUser.value) {
+        userData = loggedInUser.value;
+        await userStore.fetchFriendCount(); 
+        count = userStore.friendCount;
     } else {
-        const data = await userStore.fetchUserByUsername(usernameToFetch)
-        if (!data) throw new Error('User not found')
-        profileUser.value = data
+        userData = await userStore.fetchUserByUsername(usernameToFetch);
+        if (!userData) throw new Error('User not found');
+        
+        count = await userStore.fetchFriendCount(usernameToFetch);
+        
+        await checkFriendshipStatus();
     }
 
-    await postStore.fetchUserPosts(usernameToFetch)
+    profileUser.value = { ...userData, friendCount: count };
+    await postStore.fetchUserPosts(usernameToFetch);
 
   } catch (err: any) {
     error.value = err.message || 'Could not load profile'
@@ -305,8 +232,10 @@ onMounted(() => {
   loadData(props.username)
 })
 
-function sendFriendRequest() {
-    alert(`Friend request sent to ${props.username}!`)
+function goToProfile(targetUsername: string) {
+  if (targetUsername && targetUsername !== props.username) {
+    router.push(`/profile/${targetUsername}`)
+  }
 }
 </script>
 
@@ -321,12 +250,10 @@ function sendFriendRequest() {
   margin: 0;
   padding: 0;
 }
-
 .content-wrapper {
     width: 100%;
     max-width: 700px;
 }
-
 .post-card {
   width: 100%;
   max-width: 700px;

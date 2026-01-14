@@ -18,19 +18,39 @@
       <div v-else class="w-100 d-flex flex-column align-center">
         <v-card
           v-for="friend in friends"
-          :key="friend"
+          :key="friend.username"
           class="friend-card mb-3 elevation-1"
           width="100%"
           max-width="400"
-          :to="`/profile/${friend}`"
+          :to="`/profile/${friend.username}`"
         >
           <v-card-text class="d-flex align-center">
-            <v-avatar color="orangered" size="40" class="mr-3 text-white font-weight-bold">
-                {{ friend.charAt(0).toUpperCase() }}
+            <v-avatar 
+              size="52" 
+              class="mr-3"
+              color="grey-lighten-3"
+              style="border: 1px solid #ffd6b3"
+            >
+              <v-img
+                v-if="friend.avatar"
+                :src="friend.avatar"
+                alt="Friend avatar"
+                cover
+              />
+              <span v-else class="text-h6 font-weight-bold" style="color: orangered;">
+                {{ friend.username.charAt(0).toUpperCase() }}
+              </span>
             </v-avatar>
-            <span class="text-h6 font-weight-bold" style="color: orangered;">
-                {{ friend }}
-            </span>
+
+            <div class="text-left">
+              <div class="text-subtitle-1 font-weight-bold" style="color: #333;">
+                {{ friend.username }}
+              </div>
+              <div class="text-caption text-grey">
+                {{ friend.firstName }} {{ friend.lastName }}
+              </div>
+            </div>
+
             <v-spacer></v-spacer>
             <v-icon color="grey">mdi-chevron-right</v-icon>
           </v-card-text>
@@ -47,14 +67,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/user'
+import { useUserStore, type UserProfile } from '@/stores/user'
 import { storeToRefs } from 'pinia'
 
 const router = useRouter()
 const userStore = useUserStore()
 const { user } = storeToRefs(userStore)
 
-const friends = ref<string[]>([])
+// Change from string[] to UserProfile[]
+const friends = ref<UserProfile[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
@@ -76,9 +97,9 @@ onMounted(async () => {
     if (!res.ok) throw new Error("Failed to load friends list")
     
     const friendships = await res.json()
-    
     const friendSet = new Set<string>()
     
+    // 1. Get the usernames from the friend requests
     friendships.forEach((f: any) => {
         if (f.requestingUserId === currentUsername) {
             friendSet.add(f.requestRecipientId)
@@ -87,7 +108,15 @@ onMounted(async () => {
         }
     })
 
-    friends.value = Array.from(friendSet)
+    const usernames = Array.from(friendSet)
+
+    // 2. NEW: Fetch the full profiles for these usernames
+    // We map each username to a fetch call
+    const profilePromises = usernames.map(name => userStore.fetchUserByUsername(name))
+    
+    // Resolve all promises and filter out any null results
+    const profiles = await Promise.all(profilePromises)
+    friends.value = profiles.filter((p): p is UserProfile => p !== null)
 
   } catch (err: any) {
     error.value = err.message
@@ -112,6 +141,7 @@ onMounted(async () => {
     background-color: #fff3e6 !important;
     border: 1px solid #ffd6b3;
     transition: transform 0.2s;
+    text-decoration: none;
 }
 
 .friend-card:hover {
