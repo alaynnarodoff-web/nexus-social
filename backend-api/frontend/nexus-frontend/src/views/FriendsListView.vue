@@ -74,7 +74,6 @@ const router = useRouter()
 const userStore = useUserStore()
 const { user } = storeToRefs(userStore)
 
-// Change from string[] to UserProfile[]
 const friends = ref<UserProfile[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -99,7 +98,6 @@ onMounted(async () => {
     const friendships = await res.json()
     const friendSet = new Set<string>()
     
-    // 1. Get the usernames from the friend requests
     friendships.forEach((f: any) => {
         if (f.requestingUserId === currentUsername) {
             friendSet.add(f.requestRecipientId)
@@ -110,11 +108,8 @@ onMounted(async () => {
 
     const usernames = Array.from(friendSet)
 
-    // 2. NEW: Fetch the full profiles for these usernames
-    // We map each username to a fetch call
     const profilePromises = usernames.map(name => userStore.fetchUserByUsername(name))
     
-    // Resolve all promises and filter out any null results
     const profiles = await Promise.all(profilePromises)
     friends.value = profiles.filter((p): p is UserProfile => p !== null)
 

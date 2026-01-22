@@ -1,7 +1,9 @@
 <template>
   <div class="center-container">
     <v-container class="d-flex flex-column align-center text-center" style="max-width: 400px;">
+      
       <img src="@/assets/thumbnail_IMG_2719.png" alt="Logo" class="logo-img mb-4" />
+      
       <h2 class="text-h5 font-weight-bold mb-4">Create Account</h2>
 
       <div class="w-100">
@@ -11,17 +13,18 @@
         <v-text-field v-model="phoneNumber" label="Phone Number" variant="underlined" color="orangered"></v-text-field>
         <v-text-field v-model="firstName" label="First Name" variant="underlined" color="orangered"></v-text-field>
         <v-text-field v-model="lastName" label="Last Name" variant="underlined" color="orangered"></v-text-field>
+        
         <v-textarea
           v-model="bio"
           label="Add a Bio!"
           variant="outlined"
           rows="3"
-          class="mt-2"
+          class="mt-2 mb-4"
           color="orangered"
         ></v-textarea>
 
-        <div class="d-flex flex-column align-center my-6">
-            <v-avatar size="100" class="mb-3 elevation-2" style="border: 2px solid orangered;">
+        <div class="d-flex flex-column align-center mb-6">
+            <v-avatar size="100" class="mb-2 elevation-2" style="border: 2px solid orangered;">
                 <v-img :src="avatarBase64 || ''" cover>
                     <template v-slot:placeholder>
                         <div class="d-flex align-center justify-center fill-height bg-grey-lighten-4">
@@ -30,32 +33,57 @@
                     </template>
                 </v-img>
             </v-avatar>
+
+            <v-btn
+                v-if="avatarBase64"
+                variant="text"
+                color="grey-darken-1"
+                size="small"
+                class="mb-2"
+                prepend-icon="mdi-close"
+                @click="clearAvatar"
+            >
+                Remove Photo
+            </v-btn>
             
+            <div 
+                class="d-flex align-center justify-center avatar-upload-btn pa-2 mt-1" 
+                @click="triggerFileInput"
+                v-ripple
+            >
+                 <v-icon color="orangered" icon="mdi-camera" class="mr-2"></v-icon>
+                 <span class="text-body-2 font-weight-bold" style="color: orangered;">
+                    {{ avatarBase64 ? 'Change Photo' : 'Add Photo' }}
+                 </span>
+            </div>
+
             <v-file-input
+                ref="fileInputRef"
                 v-model="avatarFile"
-                label="Choose Avatar"
                 accept="image/*"
-                variant="outlined"
-                density="compact"
-                prepend-icon="mdi-camera"
                 hide-details
-                color="orangered"
-                style="width: 250px"
+                class="d-none"
                 @update:model-value="handleAvatarChange"
             ></v-file-input>
         </div>
       </div>
 
+      <v-alert v-if="error" type="error" variant="tonal" class="mb-4 w-100">
+        {{ error }}
+      </v-alert>
+
       <v-btn 
-        color="orangered" 
         block 
-        variant="flat"
-        class="mb-3 text-white font-weight-bold" 
-        size="large"
+        elevation="4"
+        height="54"
+        class="mb-3"
         :loading="loading"
         @click="createUser"
+        style="background-color: orangered !important; color: white !important;"
       >
-        Create Account
+        <span style="color: white !important; font-weight: bold; font-size: 1.1rem;">
+          CREATE ACCOUNT
+        </span>
       </v-btn>
 
       <router-link to="/login" class="text-decoration-none font-weight-bold" style="color: orangered;">
@@ -79,10 +107,15 @@ const lastName = ref('')
 const phoneNumber = ref('') 
 const bio = ref('')
 
+const fileInputRef = ref<any>(null)
 const avatarFile = ref<File[] | undefined>()
 const avatarBase64 = ref<string>('')
 const loading = ref(false)
 const error = ref<string | null>(null)
+
+function triggerFileInput() {
+    fileInputRef.value?.click()
+}
 
 function handleAvatarChange(files: File | File[]) {
     const file = Array.isArray(files) ? files[0] : files;
@@ -95,20 +128,28 @@ function handleAvatarChange(files: File | File[]) {
         }
         reader.readAsDataURL(file);
     } else {
-        avatarBase64.value = '';
     }
 }
 
+function clearAvatar() {
+    avatarFile.value = undefined
+    avatarBase64.value = ''
+}
+
 async function createUser() {
-    loading.value = true
     error.value = null
+
+    if (!username.value.trim() || !password.value.trim() || !email.value.trim() || !firstName.value.trim() || !lastName.value.trim()) {
+        error.value = "You can't create a blank account! Please fill in the required fields."
+        return; 
+    }
+
+    loading.value = true
 
     try {
         const response = await fetch('/api/user', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 username: username.value,
                 password: password.value,
@@ -126,6 +167,11 @@ async function createUser() {
             router.push('/login')
         } else {
             const text = await response.text()
+            
+            if (text.length > 100 || text.includes('Internal Server Error')) {
+                throw new Error("Something went wrong on our end. Please check your info and try again.")
+            }
+            
             throw new Error(text || "Failed to create account")
         }
     } catch (err: any) {
@@ -151,8 +197,14 @@ async function createUser() {
     width: 100px;
     height: auto;
 }
-.action-link {
-    text-decoration: none;
-    font-weight: bold;
+
+.avatar-upload-btn {
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.avatar-upload-btn:hover {
+    background-color: #fff3e6;
 }
 </style>

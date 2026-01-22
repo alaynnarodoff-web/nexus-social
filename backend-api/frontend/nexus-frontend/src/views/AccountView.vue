@@ -23,16 +23,35 @@
             </v-img>
           </v-avatar>
 
+          <v-btn
+            v-if="avatarBase64"
+            variant="text"
+            color="grey-darken-1"
+            size="small"
+            class="mb-2"
+            prepend-icon="mdi-close"
+            @click="clearAvatarSelection"
+          >
+            Cancel Selection
+          </v-btn>
+
+          <div 
+            class="d-flex align-center justify-center upload-trigger-btn pa-2" 
+            @click="triggerFileInput"
+            v-ripple
+          >
+            <v-icon color="orangered" icon="mdi-camera" class="mr-2"></v-icon>
+            <span class="text-body-2 font-weight-bold" style="color: orangered;">
+              {{ avatarBase64 ? 'Change Selection' : 'Change Profile Photo' }}
+            </span>
+          </div>
+
           <v-file-input
+            ref="fileInputRef"
             v-model="avatarFile"
-            label="Change Profile Photo"
             accept="image/*"
-            variant="outlined"
-            density="compact"
-            prepend-icon="mdi-camera"
             hide-details
-            color="orangered"
-            style="max-width: 300px"
+            class="d-none"
             @update:model-value="handleAvatarChange"
           ></v-file-input>
         </div>
@@ -101,13 +120,16 @@
         <v-btn
           block
           size="large"
-          color="orangered"
-          variant="flat"
-          class="text-white font-weight-bold mb-4"
+          elevation="4"
+          height="54"
+          class="mb-4"
           :loading="loading"
           @click="updateUser"
+          style="background-color: orangered !important; color: white !important;"
         >
-          Update Profile
+          <span style="color: white !important; font-weight: bold; font-size: 1.1rem;">
+            UPDATE PROFILE
+          </span>
         </v-btn>
 
         <v-btn
@@ -142,6 +164,7 @@ const phone = ref<string>('')
 const bio = ref<string>('')
 const avatarUrl = ref<string>('defaultAvatar.jpg')
 
+const fileInputRef = ref<any>(null)
 const avatarFile = ref<File | File[]>() 
 const avatarBase64 = ref<string>('')
 
@@ -175,6 +198,10 @@ onMounted(async () => {
   await userStore.fetchFriendCount()
 })
 
+function triggerFileInput() {
+    fileInputRef.value?.click()
+}
+
 function handleAvatarChange(files: File | File[]) {
     const file = Array.isArray(files) ? files[0] : files;
     if (file) {
@@ -185,9 +212,12 @@ function handleAvatarChange(files: File | File[]) {
             }
         }
         reader.readAsDataURL(file);
-    } else {
-        avatarBase64.value = '';
     }
+}
+
+function clearAvatarSelection() {
+    avatarFile.value = undefined
+    avatarBase64.value = ''
 }
 
 async function updateUser() {
@@ -207,6 +237,7 @@ async function updateUser() {
 
     await userStore.updateUser(updatedUserData)
     alert('Profile updated successfully!')
+    
     avatarBase64.value = '' 
     avatarFile.value = undefined
 
@@ -241,5 +272,16 @@ function logout() {
     text-decoration: none;
     font-weight: bold;
     font-size: 1.1rem;
+}
+
+.upload-trigger-btn {
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+    display: inline-flex;
+}
+
+.upload-trigger-btn:hover {
+    background-color: #fff3e6;
 }
 </style>

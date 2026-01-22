@@ -67,45 +67,56 @@ public class PostController {
     @PostMapping("/posts")
     public Post createPost(
             @RequestParam("authorId") String authorId,
-            @RequestParam("content") String content,
+            @RequestParam(value = "content", required = false) String content,
             @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) throws IOException {
+
+        boolean hasContent = content != null && !content.trim().isEmpty();
+        boolean hasImage = imageFile != null && !imageFile.isEmpty();
+
+        if (!hasContent && !hasImage) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Post must have either text or an image.");
+        }
 
         Post post = new Post();
         post.setAuthorId(authorId);
-        post.setContent(content);
-        DataAnalyzer daAnalyzer = new DataAnalyzer(content);
-        ObjectMapper mapper = new ObjectMapper();
-        logger.info("Sending to Data Analyzer:");
-        logger.info(mapper.writeValueAsString(daAnalyzer));
+        post.setContent(hasContent ? content : "");
 
-        try {
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(new java.net.URI("http://localhost:8000/classify"))
-                    .header("Content-Type", "application/json")
-                    .version(HttpClient.Version.HTTP_1_1)
-                    .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(daAnalyzer)))
-                    .build();
-            HttpResponse<String> daResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (hasContent) {
+            try {
+                DataAnalyzer daAnalyzer = new DataAnalyzer(content);
+                ObjectMapper mapper = new ObjectMapper();
 
-            if (daResponse != null) {
-                String daAnalyzerResponse = daResponse.body();
-                ObjectMapper daMapper = new ObjectMapper();
-                DataAnalyzerResponse sentiment = daMapper.readValue(daAnalyzerResponse, DataAnalyzerResponse.class);
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(new java.net.URI("http://localhost:8000/classify"))
+                        .header("Content-Type", "application/json")
+                        .version(HttpClient.Version.HTTP_1_1)
+                        .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(daAnalyzer)))
+                        .build();
 
-                post.setSentimentLabel(sentiment.getSentiment().getLabel());
-                post.setSentimentScore(sentiment.getSentiment().getScore());
-                post.setTopics(sentiment.getClassification().stream()
-                        .filter(c -> c.getScore() >= 0.3)
-                        .map(c -> ((DataAnalyzerResponse.Classification) c).getCategory()).toList());
+                HttpResponse<String> daResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                if (daResponse != null && daResponse.statusCode() == 200) {
+                    String daAnalyzerResponse = daResponse.body();
+                    ObjectMapper daMapper = new ObjectMapper();
+                    DataAnalyzerResponse sentiment = daMapper.readValue(daAnalyzerResponse, DataAnalyzerResponse.class);
+
+                    post.setSentimentLabel(sentiment.getSentiment().getLabel());
+                    post.setSentimentScore(sentiment.getSentiment().getScore());
+                    post.setTopics(sentiment.getClassification().stream()
+                            .filter(c -> c.getScore() >= 0.3)
+                            .map(c -> ((DataAnalyzerResponse.Classification) c).getCategory()).toList());
+                }
+            } catch (Exception e) {
+                logger.error(
+                        "Sentiment analysis service unavailable or failed. Saving post without sentiment. Error: {}",
+                        e.getMessage());
+                post.setSentimentLabel("UNKNOWN");
+                post.setSentimentScore(0.0);
             }
-
-        } catch (Exception e) {
-            System.err.println("Error during sentiment analysis: " + e.getMessage());
-
-            throw new ResponseStatusException(
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "Post creation failed: Sentiment analysis service is currently unavailable.");
+        } else {
+            post.setSentimentLabel("NEUTRAL");
+            post.setSentimentScore(0.5);
         }
 
         User user = userRepository.findByUsername(authorId);
@@ -113,7 +124,7 @@ public class PostController {
             post.setAuthorAvatar(user.getAvatar());
         }
 
-        if (imageFile != null && !imageFile.isEmpty()) {
+        if (hasImage) {
             String base64Image = Base64.getEncoder().encodeToString(imageFile.getBytes());
             post.setImageBase64(base64Image);
         }

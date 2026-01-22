@@ -1,38 +1,56 @@
 <template>
   <div class="center-container">
-    <img src="@/assets/thumbnail_IMG_2719.png" alt="My Image" />
+    <v-container class="fill-height d-flex flex-column align-center justify-center">
+      
+      <div class="login-wrapper d-flex flex-column align-center w-100">
+        
+        <img src="@/assets/thumbnail_IMG_2719.png" alt="Nexus Social Logo" class="logo-img mb-8" />
 
-    
-     <div class="loginUser">
-<v-text-field
-  v-model="username"
-  label="Username"
-  variant="underlined"
-  name="username"
-  type="username"
-  style="width: 320px"
-></v-text-field>
-</div>
+        <div class="input-group w-100 d-flex flex-column align-center">
+          <v-text-field
+            v-model="username"
+            label="Username"
+            variant="underlined"
+            color="orangered"
+            class="mb-2 w-100 custom-field"
+          ></v-text-field>
 
-    
-<div class="loginUser">
-  <v-text-field
-    v-model="password"
-    label="Password"
-    variant="underlined"
-    name="password"
-    type="password"
-    style="width: 320px"
-  ></v-text-field>
-</div>
+          <v-text-field
+            v-model="password"
+            label="Password"
+            variant="underlined"
+            color="orangered"
+            type="password"
+            class="mb-6 w-100 custom-field"
+          ></v-text-field>
 
-<div v-if="error" class="error-message">
-  {{ error }}
-</div>
+          <v-alert 
+            v-if="localError" 
+            type="error" 
+            variant="tonal" 
+            class="mb-6 w-100 custom-field"
+          >
+            {{ localError }}
+          </v-alert>
 
-<v-btn @click="login">Login</v-btn>
+          <v-btn 
+            block 
+            elevation="4"
+            height="54"
+            class="mb-6 text-white font-weight-bold custom-field"
+            @click="login"
+            style="background-color: orangered !important;"
+          >
+            LOGIN
+          </v-btn>
 
-    <router-link to="/create-user">Create User Page</router-link>
+          <router-link to="/create-user" class="create-account-link">
+            Create an Account
+          </router-link>
+        </div>
+      </div>
+
+    </v-container>
   </div>
 </template>
 
@@ -44,119 +62,79 @@ import { useRouter } from 'vue-router'
 
 const username = ref<string>('')
 const password = ref<string>('')
+const localError = ref<string | null>(null) 
 
 const userStore = useUserStore()
-
-const { error, user } = storeToRefs(userStore)
-
+const { user } = storeToRefs(userStore)
 const router = useRouter()
 
 const login = async () => {
+  localError.value = null
+  userStore.error = null
+
+  if (!username.value.trim() || !password.value.trim()) {
+    localError.value = "Please enter both your username and password."
+    return
+  }
+
   try {
     await userStore.login(username.value, password.value)
 
     if (user.value) {
       sessionStorage.setItem('loggedInUser', username.value)
-      console.log('login succeeded for', username.value)
       router.push('/view-posts')
     } else {
-      console.log('Login failed, user object is null. Error:', error.value)
+      localError.value = "Username or password is incorrect."
     }
-  } catch (err) {
-    console.error('An unexpected error occurred during login:', err)
+  } catch (err: any) {
+    const msg = err.message || ""
+    if (msg.includes('401') || err.status === 401 || msg.toLowerCase().includes('unauthorized')) {
+      localError.value = "Username or password is incorrect."
+    } else {
+      localError.value = "The login service is currently unavailable. Please try again later."
+    }
   }
 }
 </script>
 
 <style scoped>
 .center-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;    
-  justify-content: center; 
   width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
   background-color: white;
   margin: 0;
   padding: 0;
-  text-align: center; 
-}
-
-.center-container img {
-  width: 120px;
-  height: auto;
-  margin-bottom: 20px;
-}
-
-
-.loginUser {
   display: flex;
-  flex-direction: column;
-  align-items: center; 
-  margin: 10px 0;
-  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
-  font-size: 14px;
-  width: 250px;
-  color: #000;
+  align-items: center;
+  justify-content: center;
 }
 
-label {
-  color: #000;
-  margin-bottom: 5px;
+.login-wrapper {
+  max-width: 400px;
 }
 
-input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  color: #000;
-  background-color: #fff;
-  text-align: center; 
+.logo-img {
+  width: 150px;
+  height: auto;
 }
 
-.my-button {
-  background-color: orangered;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-top: 10px;
-  width: 250px;
+.custom-field {
+  max-width: 320px;
 }
 
-.my-button:hover {
-  background-color: #b33000;
-}
-
-a {
-  margin-top: 10px;
+.create-account-link {
   color: orangered;
   text-decoration: none;
-  display: inline-block;
+  font-weight: bold;
+  font-size: 1rem;
 }
 
-a:hover {
+.create-account-link:hover {
   text-decoration: underline;
 }
-</style>
 
-<style>
-html,
-body,
-#app {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background-color: white;
-}
-
-.error-message {
-  color: red;
-  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
-  margin-bottom: 15px;
-  width: 320px; 
-  text-align: center;
+:deep(.v-alert) {
+  height: auto !important;
+  text-align: left;
 }
 </style>

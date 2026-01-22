@@ -1,56 +1,83 @@
 <template>
   <div class="center-container">
     <v-container class="d-flex flex-column align-center text-center" style="max-width: 500px;">
+      
       <img src="@/assets/thumbnail_IMG_2719.png" alt="Logo" class="logo-img mb-4" />
+      
       <h2 class="text-h5 font-weight-bold mb-4">Create a New Post</h2>
 
-      <div class="w-100 text-left">
+      <div class="w-100">
         <v-textarea
           v-model="postContent"
-          label="What's on your mind?"
+          label="What do you want to say?"
           variant="outlined"
           rows="4"
           color="orangered"
-          class="mb-2"
+          class="mb-6 post-text-area" 
+          placeholder="Type your message here..."
+          auto-grow
         ></v-textarea>
 
-        <v-file-input
-          v-model="imageFile"
-          label="Add a Photo"
-          accept="image/*"
-          variant="outlined"
-          prepend-icon="mdi-camera"
-          color="orangered"
-          density="compact"
-          hide-details
-          class="mb-4"
-          @update:model-value="handleFileChange"
-        ></v-file-input>
+        <div class="d-flex flex-column align-center mb-6">
+            
+            <div v-if="previewBase64" class="mb-4 d-flex flex-column align-center">
+                <p class="text-caption text-grey mb-2">Image Preview</p>
+                <v-img 
+                  :src="previewBase64" 
+                  width="250" 
+                  class="rounded-lg border shadow-sm mb-2"
+                  cover
+                />
+                <v-btn
+                    variant="text"
+                    color="grey-darken-1"
+                    size="small"
+                    prepend-icon="mdi-close"
+                    @click="clearPhoto"
+                >
+                    Remove Photo
+                </v-btn>
+            </div>
 
-        <div v-if="previewUrl" class="mb-4 d-flex flex-column align-center">
-            <p class="text-caption text-grey mb-1">Image Preview</p>
-            <v-img 
-              :src="previewUrl" 
-              width="200" 
-              class="rounded-lg border shadow-sm"
-              cover
-            />
+            <div 
+                class="d-flex align-center justify-center upload-trigger-btn pa-2" 
+                @click="triggerFileInput"
+                v-ripple
+            >
+                 <v-icon color="orangered" icon="mdi-camera" class="mr-2"></v-icon>
+                 <span class="text-body-2 font-weight-bold" style="color: orangered;">
+                    {{ previewBase64 ? 'Change Photo' : 'Add Photo' }}
+                 </span>
+            </div>
+
+            <v-file-input
+                ref="fileInputRef"
+                v-model="imageFile"
+                accept="image/*"
+                hide-details
+                class="d-none"
+                @update:model-value="handleFileChange"
+            ></v-file-input>
         </div>
       </div>
 
-      <v-alert v-if="error" type="error" variant="tonal" class="mb-4 w-100">{{ error }}</v-alert>
+      <v-alert v-if="error" type="error" variant="tonal" class="mb-4 w-100">
+        {{ error }}
+      </v-alert>
 
       <v-btn 
-        color="orangered" 
         block 
-        variant="flat"
-        class="text-white font-weight-bold" 
-        size="large"
+        elevation="4"
+        height="54"
         :loading="loading"
         @click="createPost"
+        style="background-color: orangered !important; color: white !important;"
       >
-        Create Post
+        <span style="color: white !important; font-weight: bold; font-size: 1.1rem;">
+          CREATE POST
+        </span>
       </v-btn>
+
     </v-container>
   </div>
 </template>
@@ -64,38 +91,56 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const postContent = ref('')
-const imageFile = ref<File[] | undefined>() 
-const previewUrl = ref<string | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+
+const fileInputRef = ref<any>(null)
+const imageFile = ref<any>(undefined) 
+const previewBase64 = ref<string | null>(null)
+
+function triggerFileInput() {
+    fileInputRef.value?.click()
+}
 
 function handleFileChange(files: File | File[]) {
     const file = Array.isArray(files) ? files[0] : files;
     if (file) {
-      imageFile.value = [file]
-        previewUrl.value = URL.createObjectURL(file)
-    } else {
-        previewUrl.value = null
+        imageFile.value = file; 
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            if (typeof e.target?.result === 'string') {
+                previewBase64.value = e.target.result;
+            }
+        }
+        reader.readAsDataURL(file);
     }
 }
 
+function clearPhoto() {
+    imageFile.value = undefined;
+    previewBase64.value = null;
+}
+
 async function createPost() {
+    if (!postContent.value.trim() && !imageFile.value) {
+        error.value = "Please add some text or a photo before posting.";
+        return;
+    }
+
     loading.value = true
     error.value = null
 
     try {
         const authorId = userStore.user?.username || sessionStorage.getItem("loggedInUser")
-        
-        if (!authorId) {
-            throw new Error("You must be logged in to post.")
-        }
+        if (!authorId) throw new Error("You must be logged in to post.")
 
         const formData = new FormData()
         formData.append("authorId", authorId)
-        formData.append("content", postContent.value)
+        formData.append("content", postContent.value || "")
         
-        if (imageFile.value && imageFile.value[0]) {
-            formData.append("imageFile", imageFile.value[0])
+        const fileToUpload = Array.isArray(imageFile.value) ? imageFile.value[0] : imageFile.value;
+        if (fileToUpload) {
+            formData.append("imageFile", fileToUpload)
         }
 
         const response = await fetch('/api/posts', {
@@ -103,19 +148,12 @@ async function createPost() {
             body: formData
         })
 
-        if (response.status === 401) {
-            router.push('/login')
-            return
-        }
-
         if (!response.ok) {
             const data = await response.json().catch(() => ({}))
             throw new Error(data.message || "Error creating post")
         }
 
-        alert('Post created successfully!')
         router.push('/view-posts')
-
     } catch (err: any) {
         console.error(err)
         error.value = err.message
@@ -141,8 +179,22 @@ async function createPost() {
     height: auto;
 }
 
-.action-link {
-    text-decoration: none;
-    font-weight: bold;
+.upload-trigger-btn {
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+    display: inline-flex;
+}
+
+.upload-trigger-btn:hover {
+    background-color: #fff3e6;
+}
+
+.post-text-area :deep(.v-field__outline) {
+  color: orangered !important;
+}
+
+.post-text-area :deep(.v-field__input) {
+  min-height: 100px;
 }
 </style>
