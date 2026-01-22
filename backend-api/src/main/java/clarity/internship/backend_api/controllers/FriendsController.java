@@ -1,19 +1,27 @@
 package clarity.internship.backend_api.controllers;
 
-import clarity.internship.backend_api.data.FriendRequestRepository;
-import clarity.internship.backend_api.models.FriendRequest;
-
-import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-
 import java.time.Instant;
 import java.util.ArrayList;
+// import java.util.HashSet;
 import java.util.List;
+// import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import clarity.internship.backend_api.data.FriendRequestRepository;
+import clarity.internship.backend_api.models.FriendRequest;
+import jakarta.servlet.http.HttpSession;
 
 @RestController
 @RequestMapping("/friends")
@@ -36,30 +44,17 @@ public class FriendsController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot friend yourself.");
         }
 
-        List<FriendRequest> existingFriendshipCheck = friendRequestRepository
-                .findByRequestingUserIdOrRequestRecipientIdAndAcceptedTrue(fromUser, toUser);
-        boolean alreadyFriends = existingFriendshipCheck.stream()
-                .anyMatch(fr -> (fr.getRequestingUserId().equals(fromUser) && fr.getRequestRecipientId().equals(toUser))
-                        ||
-                        (fr.getRequestingUserId().equals(toUser) && fr.getRequestRecipientId().equals(fromUser)));
-
-        if (alreadyFriends) {
+        if (areFriends(fromUser, toUser)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "You are already friends.");
         }
 
-        List<FriendRequest> existingSent = friendRequestRepository
-                .findByRequestingUserIdAndRequestRecipientId(fromUser, toUser);
-        if (!existingSent.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Friend request already sent.");
-        }
+        List<FriendRequest> existing = friendRequestRepository.findByRequestingUserIdAndRequestRecipientId(fromUser,
+                toUser);
+        List<FriendRequest> inverse = friendRequestRepository.findByRequestingUserIdAndRequestRecipientId(toUser,
+                fromUser);
 
-        List<FriendRequest> existingReceived = friendRequestRepository
-                .findByRequestingUserIdAndRequestRecipientId(toUser, fromUser);
-        if (!existingReceived.isEmpty() && !existingReceived.get(0).isAccepted()
-                && !existingReceived.get(0).isRejected()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "User has already sent you a request. Please respond to it.");
-        } else if (!existingReceived.isEmpty()) {
+        if (!existing.isEmpty() || !inverse.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "A friend request is already pending.");
         }
 
         FriendRequest fr = new FriendRequest();
@@ -74,19 +69,19 @@ public class FriendsController {
     }
 
     @GetMapping("/count")
-    public long getFriendCount() {
-        String user = (String) session.getAttribute("loggedInUser");
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not logged in.");
+    public long getFriendCount(@RequestParam(required = false) String username) {
+        String targetUser = (username != null && !username.isEmpty()) ? username
+                : (String) session.getAttribute("loggedInUser");
+
+        if (targetUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not specified.");
         }
 
-        List<FriendRequest> sentAndAccepted = friendRequestRepository
-                .findByRequestingUserIdAndAcceptedTrue(user);
-        List<FriendRequest> receivedAndAccepted = friendRequestRepository
-                .findByRequestRecipientIdAndAcceptedTrue(user);
+        List<FriendRequest> sent = friendRequestRepository.findByRequestingUserIdAndAcceptedTrue(targetUser);
+        List<FriendRequest> received = friendRequestRepository.findByRequestRecipientIdAndAcceptedTrue(targetUser);
 
-        return Stream.concat(sentAndAccepted.stream(), receivedAndAccepted.stream())
-                .map(fr -> fr.getRequestingUserId().equals(user) ? fr.getRequestRecipientId()
+        return Stream.concat(sent.stream(), received.stream())
+                .map(fr -> fr.getRequestingUserId().equals(targetUser) ? fr.getRequestRecipientId()
                         : fr.getRequestingUserId())
                 .distinct()
                 .count();
@@ -176,10 +171,11 @@ public class FriendsController {
 
     @GetMapping("/areFriends")
     public boolean areFriends(@RequestParam String user1, @RequestParam String user2) {
-        List<FriendRequest> fromUser1 = friendRequestRepository
+        List<FriendRequest> from1 = friendRequestRepository
                 .findByAcceptedTrueAndRequestingUserIdAndRequestRecipientId(user1, user2);
-        List<FriendRequest> fromUser2 = friendRequestRepository
+        List<FriendRequest> from2 = friendRequestRepository
                 .findByAcceptedTrueAndRequestingUserIdAndRequestRecipientId(user2, user1);
-        return !fromUser1.isEmpty() || !fromUser2.isEmpty();
+        return !from1.isEmpty() || !from2.isEmpty();
     }
+
 }

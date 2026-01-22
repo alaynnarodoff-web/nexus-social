@@ -1,22 +1,20 @@
-# ==========================================
-# PHASE 1: The Factory (Building the App)
-# ==========================================
-# Updated to JDK 21 to match your Gradle configuration
-FROM eclipse-temurin:21-jdk AS builder
+# 1. Base image
+FROM gradle:8.5-jdk21
 
 WORKDIR /app
-COPY . .
-RUN chmod +x ./gradlew
-RUN ./gradlew bootJar -x test
 
-# ==========================================
-# PHASE 2: The Delivery Truck (Running the App)
-# ==========================================
-# Updated to JRE 21 to match the builder
-FROM eclipse-temurin:21-jre
+# 2. Copy files
+COPY build.gradle settings.gradle ./
+COPY src ./src
 
-WORKDIR /app
-COPY --from=builder /app/build/libs/*.jar app.jar
+# 3. Build the specific Spring Boot Jar
+# We use 'bootJar' instead of 'build' to ensure we get the executable file
+RUN gradle clean bootJar -x test
 
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# 4. The Magic Step: Find the jar and rename it to 'app.jar'
+# This handles the version number changing or weird folder structures
+RUN mv build/libs/*SNAPSHOT.jar app.jar
+
+# 5. Run the renamed file
+# Now we don't need wildcards because we know the file is named 'app.jar'
+CMD ["java", "-jar", "app.jar"]

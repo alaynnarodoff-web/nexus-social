@@ -1,0 +1,37 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: my-mongo-container
+    ports:
+      - "27018:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      - mongo-data:/data/db
+
+  spring-app:
+    build:
+      context: ./backend-api
+      dockerfile: Dockerfile
+    container_name: my-spring-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodb
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://admin:password@mongodb:27017/myappdb?authSource=admin
+
+  text-classifier:
+    build:
+      context: ./text-classifier
+      dockerfile: Dockerfile
+    container_name: my-text-classifier
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: 8000
+
+volumes:
+  mongo-data:
+    name: "nexus-mongo-data"
